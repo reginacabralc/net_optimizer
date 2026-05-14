@@ -123,8 +123,7 @@ with st.sidebar:
     source_name = st.selectbox(
         "Nodo origen",
         options=list(node_options.keys()),
-        index=list(node_options.keys()).index("Usuario-Coyoacan")
-            if "Usuario-Coyoacan" in node_options else 0,
+        index=0,
     )
     source_id = node_options[source_name]
 
@@ -147,7 +146,8 @@ nearest, dist_km = kd_tree.nearest_neighbor(client_lat, client_lon)
 target_id = nearest.node_id if nearest else graph.get_nodes_by_type("server")[0].node_id
 
 latency, dij_path = shortest_path(graph, source_id, target_id)
-mst_edges, mst_cost = prim_mst(graph, "S01")
+first_server = graph.get_nodes_by_type("server")[0].node_id
+mst_edges, mst_cost = prim_mst(graph, first_server)
 
 dij_path_names = " → ".join(
     graph.get_node(n).name.split("-", 1)[-1] for n in dij_path
