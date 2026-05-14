@@ -180,3 +180,40 @@ def shortest_path(
 
     path = reconstruct_path(prev, source_id, target_id)
     return total_latency, path
+
+
+def dijkstra_with_steps(graph: Graph, source_id: str) -> List[dict]:
+    """
+    Ejecuta Dijkstra capturando el estado de dist[] en cada iteración.
+    Usado para la animación paso a paso en el dashboard.
+
+    Args:
+        graph:     Grafo de la red ISP.
+        source_id: ID del nodo origen.
+
+    Returns:
+        Lista de dicts con estado en cada paso.
+    """
+    dist: Dict[str, float] = {
+        node_id: _INF for node_id in graph.get_all_node_ids()
+    }
+    dist[source_id] = 0.0
+    heap: List[Tuple[float, str]] = [(0.0, source_id)]
+    visited: set = set()
+    steps: List[dict] = []
+
+    while heap:
+        current_dist, u = heapq.heappop(heap)
+        if u in visited:
+            continue
+        visited.add(u)
+        steps.append({"current": u, "dist": dict(dist), "source": source_id})
+        for (v, latency, _cost) in graph.get_neighbors(u):
+            if v in visited:
+                continue
+            new_dist = current_dist + latency
+            if new_dist < dist[v]:
+                dist[v] = new_dist
+                heapq.heappush(heap, (new_dist, v))
+
+    return steps
