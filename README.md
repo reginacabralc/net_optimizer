@@ -1,5 +1,5 @@
 # NetOptimizer — Internet / Telecom Network
-
+## Regia Cabral and Luciano Ramírez
 NetOptimizer is a data structures project for **Variant 4: Internet / Telecom Network**. It models a small fiber-optic ISP network in Mexico City and demonstrates how classic structures and algorithms solve practical telecom optimization questions:
 
 - What is the **minimum-latency route** from a user area to a datacenter?
@@ -259,32 +259,3 @@ To reseed:
 - The dataset is intentionally small for a class presentation; complexity benefits become more visible with larger networks.
 - Streamlit and Plotly are used only for presentation; core algorithms are implemented manually.
 
-## Suggested Future Improvements
-
-| Improvement | Why it helps | Files/area | Difficulty |
-|---|---|---|---|
-| Add constrained routing, such as minimum latency with required minimum bandwidth. | Makes `bandwidth_gbps` operational, not only descriptive. | `src/dijkstra.py`, `app.py`, tests | Medium |
-| Add import validation report for disconnected graphs and invalid edge endpoints. | Improves data quality and presentation confidence. | `src/data_loader.py`, `tests/` | Low |
-| Add a larger synthetic network generator. | Makes complexity demos more convincing at scale. | `data/`, new seed script, dashboard benchmark | Medium |
-| Add Haversine-aware KD-tree comparison mode. | Lets the project discuss approximation vs geographic accuracy. | `src/kdtree.py`, `app.py` | Medium |
-| Add export buttons for MST and Dijkstra results. | Useful for reports and live demos. | `app.py` | Low |
-
-## 10-Minute Live Presentation Plan
-
-1. **0:00-0:45 — Problem.** Explain the ISP goals: latency, fiber cost, nearest datacenter.
-2. **0:45-1:30 — Data.** Show nodes and edges, especially `latency_ms`, `cost_usd`, and `bandwidth_gbps`.
-3. **1:30-2:30 — Graph and HashMap.** Explain adjacency list and custom HashMap lookup.
-4. **2:30-4:00 — KD-tree.** Move the client coordinates and show nearest server and partitions.
-5. **4:00-5:45 — Dijkstra.** Select a user/source, show the route and latency table.
-6. **5:45-7:15 — Prim.** Show MST cost savings and edge table.
-7. **7:15-8:15 — Timelapse.** Play Dijkstra and Prim animations.
-8. **8:15-9:15 — Complexity.** Use the table and HashMap benchmark.
-9. **9:15-10:00 — Wrap-up.** State how every Variant 4 requirement is satisfied and mention future work.
-
-## Current Compliance Summary
-
-- Dijkstra: compliant; uses `latency_ms`.
-- Prim: compliant; uses `cost_usd`.
-- KD-tree: compliant; supports nearest-server geospatial search.
-- Additional data structure: compliant; custom HashMap is implemented and used by `Graph`.
-- Telecom coherence: compliant; nodes, fiber links, latency, cost, bandwidth, routes, MST, and nearest datacenter all describe one ISP optimization system.
