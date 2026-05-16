@@ -33,6 +33,7 @@ from src.visualize_plotly import (
     build_dijkstra_steps_chart,
     build_dijkstra_map_timelapse,
     build_prim_map_timelapse,
+    build_kdtree_partition_figure,
 )
 
 # ── Configuración de página ────────────────────────────────────────────────────
@@ -445,6 +446,30 @@ with tab4:
             yaxis=dict(gridcolor="#e8e0d0", scaleanchor="x", scaleratio=1),
         )
         st.plotly_chart(fig_kd, use_container_width=True)
+
+    st.markdown("---")
+    st.markdown("#### 🗂️ Partición del espacio — fronteras del KD-tree")
+
+    st.info(
+        "**¿Por qué el KD-tree solo usa servidores?**\n\n"
+        "El KD-tree responde una sola pregunta: "
+        "*¿a qué **datacenter** me conecto?* "
+        "Un cliente nuevo no elige su router ni su switch — esos son nodos internos de la red "
+        "que ya están asignados. Lo que sí elige (o el ISP elige por él) es el **servidor de acceso** "
+        "geográficamente más cercano, porque menor distancia física implica menor latencia inicial.\n\n"
+        "Los routers, switches y usuarios que ves en gris **existen en la red** pero "
+        "el KD-tree los ignora porque no son puntos de entrada para nuevos clientes."
+    )
+    st.caption(
+        "Líneas **rojas** = cortes horizontales (eje Latitud, niveles pares) · "
+        "Líneas **azules punteadas** = cortes verticales (eje Longitud, niveles impares) · "
+        "El color de fondo indica la zona de influencia de cada servidor."
+    )
+    fig_kd_partition = build_kdtree_partition_figure(
+        kd_tree, servers, client_lat, client_lon, nearest,
+        all_nodes=list(graph.get_all_nodes()),
+    )
+    st.plotly_chart(fig_kd_partition, use_container_width=True)
 
     st.markdown("---")
     c1, c2 = st.columns(2)

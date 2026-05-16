@@ -749,6 +749,218 @@ def build_prim_map_timelapse(
     return fig
 
 
+def build_kdtree_partition_figure(
+    kd_tree,
+    servers: List[Node],
+    client_lat: float,
+    client_lon: float,
+    nearest_server: Optional[Node] = None,
+    all_nodes: Optional[List[Node]] = None,
+) -> go.Figure:
+    """
+    Mapa interactivo con las fronteras de partición del KD-tree sobre CDMX.
+
+    Muestra:
+      - Celdas coloreadas por servidor (cada servidor "posee" una región)
+      - Líneas de corte: rojas horizontales (eje latitud) y azules verticales (eje longitud)
+      - Contorno de las alcaldías de CDMX
+      - Servidores, cliente y línea al servidor más cercano
+    """
+    # CDMX bounding box como espacio inicial de partición
+    LAT_MIN, LAT_MAX = 19.04, 19.60
+    LON_MIN, LON_MAX = -99.37, -98.93
+
+    # Paleta de colores por servidor (orden estable: ordenar por node_id)
+    _PALETTE = ["#e74c3c", "#9b59b6", "#1abc9c", "#e67e22", "#3498db"]
+    sorted_servers = sorted(servers, key=lambda s: s.node_id)
+    server_color = {
+        s.node_id: _PALETTE[i % len(_PALETTE)]
+        for i, s in enumerate(sorted_servers)
+    }
+
+    AXIS_COLOR = {0: "#c0392b", 1: "#1a5276"}   # rojo = lat, azul = lon
+    AXIS_LABEL = {0: "Corte por Latitud (horizontal)", 1: "Corte por Longitud (vertical)"}
+    AXIS_DASH  = {0: "dash", 1: "dot"}
+
+    partition_lines: List[dict] = []
+    cells: List[dict] = []
+
+    def _traverse(node, depth, lat_min, lat_max, lon_min, lon_max):
+        if node is None:
+            return
+        axis = depth % 2
+        pt = node.point
+        cells.append({
+            "lat_min": lat_min, "lat_max": lat_max,
+            "lon_min": lon_min, "lon_max": lon_max,
+            "server": pt, "depth": depth,
+        })
+        if axis == 0:  # corte horizontal en pt.lat
+            partition_lines.append({"axis": 0, "value": pt.lat, "lo": lon_min, "hi": lon_max, "depth": depth})
+            _traverse(node.left,  depth + 1, lat_min, pt.lat, lon_min, lon_max)
+            _traverse(node.right, depth + 1, pt.lat, lat_max, lon_min, lon_max)
+        else:          # corte vertical en pt.lon
+            partition_lines.append({"axis": 1, "value": pt.lon, "lo": lat_min, "hi": lat_max, "depth": depth})
+            _traverse(node.left,  depth + 1, lat_min, lat_max, lon_min, pt.lon)
+            _traverse(node.right, depth + 1, lat_min, lat_max, pt.lon, lon_max)
+
+    if kd_tree._root is not None:
+        _traverse(kd_tree._root, 0, LAT_MIN, LAT_MAX, LON_MIN, LON_MAX)
+
+    fig = go.Figure()
+
+    # ── 1. Celdas coloreadas por servidor ─────────────────────────────────────
+    max_depth = max((c["depth"] for c in cells), default=0)
+    for cell in sorted(cells, key=lambda c: c["depth"]):
+        alpha = 0.06 + (cell["depth"] / max(max_depth, 1)) * 0.13
+        col_hex = server_color[cell["server"].node_id]
+        r, g, b = int(col_hex[1:3], 16), int(col_hex[3:5], 16), int(col_hex[5:7], 16)
+        rect_x = [cell["lon_min"], cell["lon_max"], cell["lon_max"], cell["lon_min"], cell["lon_min"]]
+        rect_y = [cell["lat_min"], cell["lat_min"], cell["lat_max"], cell["lat_max"], cell["lat_min"]]
+        fig.add_trace(go.Scatter(
+            x=rect_x, y=rect_y, mode="lines",
+            fill="toself",
+            fillcolor=f"rgba({r},{g},{b},{alpha:.2f})",
+            line=dict(color=f"rgba({r},{g},{b},0.0)", width=0),
+            hoverinfo="skip", showlegend=False,
+        ))
+
+    # ── 2. Contorno CDMX ──────────────────────────────────────────────────────
+    fig.add_trace(_cdmx_boundary_trace())
+
+    # ── 3. Líneas de partición ────────────────────────────────────────────────
+    seen_axes: set = set()
+    for line in sorted(partition_lines, key=lambda l: l["depth"]):
+        axis = line["axis"]
+        depth = line["depth"]
+        show_leg = axis not in seen_axes
+        seen_axes.add(axis)
+        if axis == 0:
+            x, y = [line["lo"], line["hi"]], [line["value"], line["value"]]
+        else:
+            x, y = [line["value"], line["value"]], [line["lo"], line["hi"]]
+        fig.add_trace(go.Scatter(
+            x=x, y=y, mode="lines",
+            line=dict(
+                color=AXIS_COLOR[axis],
+                width=max(1.2, 2.8 - depth * 0.7),
+                dash=AXIS_DASH[axis],
+            ),
+            opacity=max(0.45, 0.95 - depth * 0.25),
+            name=AXIS_LABEL[axis],
+            legendgroup=f"axis_{axis}",
+            showlegend=show_leg,
+            hoverinfo="skip",
+        ))
+
+    # ── 4a. Nodos ignorados por el KD-tree (routers, switches, usuarios) ───────
+    if all_nodes:
+        ignored = [n for n in all_nodes if n.node_type != "server"]
+        _IGNORED_SYMBOLS = {"router": "circle", "switch": "diamond", "user": "triangle-up"}
+        _IGNORED_LABELS  = {"router": "Router", "switch": "Switch", "user": "Usuario"}
+        for ntype, label in _IGNORED_LABELS.items():
+            group = [n for n in ignored if n.node_type == ntype]
+            if not group:
+                continue
+            fig.add_trace(go.Scatter(
+                x=[n.lon for n in group],
+                y=[n.lat for n in group],
+                mode="markers+text",
+                marker=dict(
+                    size=10,
+                    color="rgba(100,100,120,0.35)",
+                    symbol=_IGNORED_SYMBOLS[ntype],
+                    line=dict(color="rgba(100,100,120,0.5)", width=1),
+                ),
+                text=[n.name.split("-", 1)[-1] for n in group],
+                textposition="top center",
+                textfont=dict(size=8, color="rgba(100,100,120,0.6)"),
+                name=f"{label} (ignorado por KD-tree)",
+                legendgroup="ignored",
+                showlegend=(ntype == "router"),  # una sola entrada en leyenda
+                hovertemplate=(
+                    "<b>%{text}</b><br>"
+                    f"Tipo: {label}<br>"
+                    "<i>No forma parte del KD-tree</i>"
+                    "<extra></extra>"
+                ),
+            ))
+
+    # ── 4b. Servidores ────────────────────────────────────────────────────────
+    for s in servers:
+        is_nearest = nearest_server and s.node_id == nearest_server.node_id
+        col = "#ffd700" if is_nearest else server_color[s.node_id]
+        fig.add_trace(go.Scatter(
+            x=[s.lon], y=[s.lat],
+            mode="markers+text",
+            marker=dict(
+                size=30 if is_nearest else 20,
+                color=col,
+                symbol="star",
+                line=dict(color="#ffffff", width=2.5 if is_nearest else 1.5),
+            ),
+            text=[s.name.split("-", 1)[-1]],
+            textposition="top center",
+            textfont=dict(
+                size=11 if is_nearest else 9,
+                color=col,
+                family="Arial Black" if is_nearest else "monospace",
+            ),
+            name=s.name,
+            showlegend=False,
+            hovertemplate=(
+                f"<b>{'⭐ ' if is_nearest else ''}{s.name}</b><br>"
+                f"Lat: {s.lat:.4f}<br>Lon: {s.lon:.4f}<extra></extra>"
+            ),
+        ))
+
+    # ── 5. Línea al servidor más cercano ──────────────────────────────────────
+    if nearest_server:
+        fig.add_trace(go.Scatter(
+            x=[client_lon, nearest_server.lon],
+            y=[client_lat, nearest_server.lat],
+            mode="lines",
+            line=dict(color="rgba(255,215,0,0.75)", width=2.5, dash="dot"),
+            hoverinfo="skip", showlegend=False,
+        ))
+
+    # ── 6. Cliente ────────────────────────────────────────────────────────────
+    fig.add_trace(go.Scatter(
+        x=[client_lon], y=[client_lat],
+        mode="markers+text",
+        marker=dict(size=18, color="#00bcd4", symbol="cross", line=dict(color="#fff", width=2.5)),
+        text=["Cliente"],
+        textposition="bottom center",
+        textfont=dict(size=10, color="#00bcd4"),
+        name="Nuevo Cliente",
+        showlegend=False,
+        hovertemplate=f"📍 Cliente<br>({client_lat:.4f}, {client_lon:.4f})<extra></extra>",
+    ))
+
+    fig.update_layout(
+        title="KD-tree — Partición del espacio geográfico de CDMX",
+        paper_bgcolor="#faf8f4",
+        plot_bgcolor="#f5f0e8",
+        font=dict(color="#2c2416", family="monospace"),
+        height=540,
+        margin=dict(l=40, r=20, t=80, b=40),
+        xaxis=dict(
+            title="Longitud", gridcolor="#e8e0d0", zerolinecolor="#ccc0a8",
+            range=[LON_MIN - 0.005, LON_MAX + 0.005],
+        ),
+        yaxis=dict(
+            title="Latitud", gridcolor="#e8e0d0", zerolinecolor="#ccc0a8",
+            scaleanchor="x", scaleratio=1,
+            range=[LAT_MIN - 0.01, LAT_MAX + 0.01],
+        ),
+        legend=dict(
+            bgcolor="#ffffff", bordercolor="#ccc5b0", borderwidth=1,
+            orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
+        ),
+    )
+    return fig
+
+
 def build_dijkstra_steps_chart(
     steps: List[dict],
     graph: Graph,
