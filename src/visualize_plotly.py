@@ -10,6 +10,8 @@ Genera un plotly.graph_objects.Figure con:
   - Nuevo cliente (cruz cian)
 """
 
+import json
+import os
 from typing import List, Optional, Tuple
 
 import plotly.graph_objects as go
@@ -47,6 +49,51 @@ _LABELS_ES = {
 }
 
 
+_CDMX_TRACE_CACHE: Optional[go.Scatter] = None
+
+
+def _cdmx_boundary_trace() -> go.Scatter:
+    """
+    Carga el GeoJSON de las 16 alcaldías de CDMX y devuelve un Scatter
+    con sus contornos y relleno sutil, listo para usar como capa de fondo.
+    El resultado se cachea en memoria para no leer disco en cada llamada.
+    """
+    global _CDMX_TRACE_CACHE
+    if _CDMX_TRACE_CACHE is not None:
+        return _CDMX_TRACE_CACHE
+
+    geojson_path = os.path.join(
+        os.path.dirname(__file__), "..", "data", "cdmx_boundary.geojson"
+    )
+    with open(geojson_path, encoding="utf-8") as f:
+        geojson = json.load(f)
+
+    xs: List[Optional[float]] = []
+    ys: List[Optional[float]] = []
+
+    for feature in geojson["features"]:
+        geom = feature["geometry"]
+        if geom["type"] == "Polygon":
+            rings = geom["coordinates"]
+        else:  # MultiPolygon
+            rings = [ring for poly in geom["coordinates"] for ring in poly]
+        for ring in rings:
+            xs += [c[0] for c in ring] + [None]
+            ys += [c[1] for c in ring] + [None]
+
+    _CDMX_TRACE_CACHE = go.Scatter(
+        x=xs, y=ys,
+        mode="lines",
+        fill="toself",
+        fillcolor="rgba(180,160,120,0.13)",
+        line=dict(color="rgba(140,120,80,0.40)", width=0.7),
+        hoverinfo="skip",
+        showlegend=False,
+        name="CDMX",
+    )
+    return _CDMX_TRACE_CACHE
+
+
 def build_network_figure(
     graph: Graph,
     mst_edges: Optional[List[Edge]] = None,
@@ -70,6 +117,9 @@ def build_network_figure(
         Figura Plotly lista para renderizar en Streamlit.
     """
     fig = go.Figure()
+
+    # CDMX alcaldía boundaries — background layer
+    fig.add_trace(_cdmx_boundary_trace())
 
     mst_set = set()
     if mst_edges:
@@ -531,7 +581,11 @@ def build_dijkstra_map_timelapse(
         len(frames),
         speed_ms,
     )
-    return go.Figure(data=_traces(steps[0]), frames=frames, layout=layout)
+    fig = go.Figure(data=_traces(steps[0]), frames=frames, layout=layout)
+    # CDMX boundary appended last — animation frames only update traces 0‥4,
+    # so this trace persists unchanged across all frames.
+    fig.add_trace(_cdmx_boundary_trace())
+    return fig
 
 
 def build_prim_map_timelapse(
@@ -688,7 +742,11 @@ def build_prim_map_timelapse(
         len(frames),
         speed_ms,
     )
-    return go.Figure(data=_traces(steps[0]), frames=frames, layout=layout)
+    fig = go.Figure(data=_traces(steps[0]), frames=frames, layout=layout)
+    # CDMX boundary appended last — animation frames only update traces 0‥5,
+    # so this trace persists unchanged across all frames.
+    fig.add_trace(_cdmx_boundary_trace())
+    return fig
 
 
 def build_dijkstra_steps_chart(

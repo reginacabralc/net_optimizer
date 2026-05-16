@@ -391,7 +391,9 @@ with tab4:
 
     with col_y:
         # Mini mapa solo con servidores y cliente
+        from src.visualize_plotly import _cdmx_boundary_trace
         fig_kd = go.Figure()
+        fig_kd.add_trace(_cdmx_boundary_trace())
         for s in servers:
             is_nearest = s.node_id == nearest.node_id
             fig_kd.add_trace(go.Scatter(
@@ -467,8 +469,8 @@ with tab5:
     # Búsqueda en vivo
     st.markdown("#### 🔎 Búsqueda en vivo por nombre")
     search_name = st.text_input(
-        "Nombre del nodo (ej: Router-Reforma, Servidor-Central)",
-        value="Router-Reforma",
+        "Nombre del nodo (ej: Datacenter Norte, Zona Insurgentes)",
+        value="Datacenter Norte",
         placeholder="Escribe un nombre...",
     )
     if search_name:
