@@ -36,7 +36,7 @@ class Graph:
         """Inicializa el grafo vacío."""
         # Índice principal: node_id → Node
         self._nodes: HashMap = HashMap()
-        # Lista de adyacencia: node_id → [(neighbor_id, latency, cost, bandwidth)]
+        # Lista de adyacencia: node_id → [(neighbor_id, latencia, costo, ancho_banda)]
         self._adj: HashMap = HashMap()
         # Índice por nombre: name → node_id
         self._name_index: HashMap = HashMap()
@@ -49,7 +49,7 @@ class Graph:
 
         Si el node_id ya existe, sobreescribe el nodo.
 
-        Args:
+        Parámetros:
             node: Objeto Node a insertar.
         """
         self._nodes.put(node.node_id, node)
@@ -62,10 +62,10 @@ class Graph:
         """
         Agrega una arista no dirigida al grafo.
 
-        La arista se registra en ambas direcciones (source→target y target→source).
+        La arista se registra en ambas direcciones (origen→destino y destino→origen).
 
-        Args:
-            edge: Objeto Edge con source, target, latency_ms, cost_usd y bandwidth.
+        Parámetros:
+            edge: Objeto Edge con source, target, latency_ms, cost_usd y bandwidth_gbps.
 
         Raises:
             ValueError: Si alguno de los nodos no existe en el grafo.
@@ -79,13 +79,13 @@ class Graph:
                 f"Nodo destino '{edge.target}' no existe en el grafo."
             )
 
-        # source → target
+        # origen → destino
         neighbors_src: List[AdjEntry] = self._adj.get(edge.source)
         neighbors_src.append(
             (edge.target, edge.latency_ms, edge.cost_usd, edge.bandwidth_gbps)
         )
 
-        # target → source (grafo no dirigido)
+        # destino → origen (grafo no dirigido)
         neighbors_tgt: List[AdjEntry] = self._adj.get(edge.target)
         neighbors_tgt.append(
             (edge.source, edge.latency_ms, edge.cost_usd, edge.bandwidth_gbps)
@@ -97,10 +97,10 @@ class Graph:
         """
         Retorna el nodo con el ID dado.
 
-        Args:
+        Parámetros:
             node_id: Identificador del nodo.
 
-        Returns:
+        Retorna:
             Objeto Node.
 
         Raises:
@@ -112,10 +112,10 @@ class Graph:
         """
         Retorna el nodo con el nombre dado (búsqueda O(1) via HashMap).
 
-        Args:
-            name: Nombre legible del nodo (ej: 'Datacenter Norte').
+        Parámetros:
+            name: Nombre legible del nodo (ej: 'Centro de Datos Norte').
 
-        Returns:
+        Retorna:
             Objeto Node.
 
         Raises:
@@ -128,10 +128,10 @@ class Graph:
         """
         Retorna la lista de vecinos de un nodo.
 
-        Args:
+        Parámetros:
             node_id: ID del nodo.
 
-        Returns:
+        Retorna:
             Lista de (neighbor_id, latency_ms, cost_usd, bandwidth_gbps).
         """
         return self._adj.get_or_default(node_id, [])
@@ -140,7 +140,7 @@ class Graph:
         """
         Retorna todos los nodos del grafo.
 
-        Returns:
+        Retorna:
             Lista de objetos Node.
         """
         return self._nodes.values()
@@ -149,10 +149,10 @@ class Graph:
         """
         Retorna todos los nodos de un tipo específico.
 
-        Args:
+        Parámetros:
             node_type: 'server' | 'router' | 'switch' | 'user'
 
-        Returns:
+        Retorna:
             Lista filtrada de nodos.
         """
         return [n for n in self._nodes.values() if n.node_type == node_type]
@@ -169,9 +169,9 @@ class Graph:
         """
         Retorna todas las aristas del grafo (sin duplicados).
 
-        Returns:
+        Retorna:
             Lista de (source_id, target_id, latency_ms, cost_usd, bandwidth_gbps).
-            Cada arista aparece una sola vez (source < target lexicográficamente).
+            Cada arista aparece una sola vez (origen < destino lexicográficamente).
         """
         seen = set()
         edges = []
@@ -203,7 +203,7 @@ class Graph:
     # ── Representación ────────────────────────────────────────────────────────
 
     def __repr__(self) -> str:
-        return f"Graph(nodes={self.num_nodes}, edges={self.num_edges})"
+        return f"Grafo(nodos={self.num_nodes}, aristas={self.num_edges})"
 
     def summary(self) -> str:
         """Retorna un resumen legible del grafo."""
@@ -214,6 +214,13 @@ class Graph:
         type_counts = {}
         for node in self.get_all_nodes():
             type_counts[node.node_type] = type_counts.get(node.node_type, 0) + 1
+        labels = {
+            "server": "servidor",
+            "router": "router",
+            "switch": "switch",
+            "user": "usuario",
+        }
         for ntype, count in sorted(type_counts.items()):
-            lines.append(f"  {ntype:8s}: {count} nodo(s)")
+            label = labels.get(ntype, ntype)
+            lines.append(f"  {label:8s}: {count} nodo(s)")
         return "\n".join(lines)

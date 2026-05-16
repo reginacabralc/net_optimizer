@@ -39,14 +39,14 @@ def dijkstra(
     Implementación con min-heap (priority queue). En cada iteración
     extrae el nodo de menor distancia acumulada y relaja sus vecinos.
 
-    Args:
+    Parámetros:
         graph:     Grafo de la red ISP.
         source_id: ID del nodo origen.
         target_id: (Opcional) ID del nodo destino. Si se provee,
-                   el algoritmo termina temprano al encontrar target.
+                   el algoritmo termina temprano al encontrar el destino.
 
-    Returns:
-        dist: dict[node_id → distancia_mínima_desde_source]
+    Retorna:
+        dist: dict[node_id → distancia_mínima_desde_origen]
         prev: dict[node_id → nodo_previo_en_ruta_óptima]
 
     Raises:
@@ -111,17 +111,17 @@ def reconstruct_path(
     target_id: str,
 ) -> List[str]:
     """
-    Reconstruye el camino óptimo desde source hasta target.
+    Reconstruye el camino óptimo desde el origen hasta el destino.
 
-    Sigue los punteros 'prev' desde target hasta source en reversa.
+    Sigue los punteros 'prev' desde el destino hasta el origen en reversa.
 
-    Args:
+    Parámetros:
         prev:      Diccionario de predecesores retornado por dijkstra().
         source_id: ID del nodo origen.
         target_id: ID del nodo destino.
 
-    Returns:
-        Lista de node_ids representando el camino [source, ..., target].
+    Retorna:
+        Lista de node_ids representando el camino [origen, ..., destino].
         Lista vacía si no hay camino.
     """
     path: List[str] = []
@@ -131,7 +131,7 @@ def reconstruct_path(
     while current is not None:
         path.append(current)
         current = prev.get(current)
-        # Si llegamos al source, paramos
+        # Si llegamos al origen, paramos
         if current == source_id:
             path.append(source_id)
             break
@@ -142,7 +142,7 @@ def reconstruct_path(
 
     path.reverse()
 
-    # Verificar que el camino empieza en source
+    # Verificar que el camino empieza en el origen
     if not path or path[0] != source_id:
         return []
 
@@ -155,20 +155,20 @@ def shortest_path(
     target_id: str,
 ) -> Tuple[float, List[str]]:
     """
-    Calcula la ruta de menor latencia entre source y target.
+    Calcula la ruta de menor latencia entre origen y destino.
 
     Función de conveniencia que combina dijkstra() + reconstruct_path().
 
-    Args:
+    Parámetros:
         graph:     Grafo de la red ISP.
         source_id: ID del nodo origen.
         target_id: ID del nodo destino.
 
-    Returns:
+    Retorna:
         (latencia_total_ms, [source_id, ..., target_id])
         Si no hay camino, retorna (inf, []).
 
-    Example:
+    Ejemplo:
         >>> latency, path = shortest_path(graph, "10", "1")
         >>> print(f"Latencia: {latency} ms, Ruta: {' → '.join(path)}")
     """
@@ -187,11 +187,11 @@ def dijkstra_with_steps(graph: Graph, source_id: str) -> List[dict]:
     Ejecuta Dijkstra capturando el estado de dist[] en cada iteración.
     Usado para la animación paso a paso en el dashboard y el timelapse del mapa.
 
-    Args:
+    Parámetros:
         graph:     Grafo de la red ISP.
         source_id: ID del nodo origen.
 
-    Returns:
+    Retorna:
         Lista de dicts con estado en cada paso. Cada dict contiene:
           - current: nodo siendo procesado
           - dist:    distancias mínimas hasta ese paso

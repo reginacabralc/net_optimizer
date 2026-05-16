@@ -2,7 +2,7 @@
 visualize_plotly.py — Gráfico interactivo de red ISP con Plotly.
 
 Genera un plotly.graph_objects.Figure con:
-  - Nodos coloreados por tipo (hover con info detallada)
+  - Nodos coloreados por tipo (mensaje emergente con info detallada)
   - Aristas base (gris)
   - MST resaltado (verde)
   - Ruta Dijkstra resaltada (rojo con flechas)
@@ -105,7 +105,7 @@ def build_network_figure(
     """
     Construye la figura Plotly interactiva de la red ISP.
 
-    Args:
+    Parámetros:
         graph:           Grafo de la red ISP.
         mst_edges:       Aristas del MST (Prim).
         dijkstra_path:   Lista de node_ids de la ruta óptima.
@@ -113,12 +113,12 @@ def build_network_figure(
         new_client:      (lat, lon) del nuevo cliente.
         dijkstra_steps:  Pasos intermedios de Dijkstra para animación.
 
-    Returns:
+    Retorna:
         Figura Plotly lista para renderizar en Streamlit.
     """
     fig = go.Figure()
 
-    # CDMX alcaldía boundaries — background layer
+    # Contornos de alcaldías de CDMX — capa de fondo
     fig.add_trace(_cdmx_boundary_trace())
 
     mst_set = set()
@@ -152,7 +152,7 @@ def build_network_figure(
                 f"<b>Enlace {src_id} ↔ {tgt_id}</b><br>"
                 f"Latencia: {latency:g} ms<br>"
                 f"Costo: ${cost:,.0f} USD<br>"
-                f"Bandwidth: {bandwidth:g} Gbps"
+                f"Ancho de banda: {bandwidth:g} Gbps"
                 "<extra></extra>"
             ),
             showlegend=False,
@@ -212,8 +212,8 @@ def build_network_figure(
             f"<b>{n.name}</b><br>"
             f"Tipo: {_LABELS_ES[n.node_type]}<br>"
             f"ID: {n.node_id}<br>"
-            f"Lat: {n.lat:.4f}<br>"
-            f"Lon: {n.lon:.4f}"
+            f"Latitud: {n.lat:.4f}<br>"
+            f"Longitud: {n.lon:.4f}"
             for n in nodes_of_type
         ]
 
@@ -255,8 +255,8 @@ def build_network_figure(
                 f"<b>⭐ SERVIDOR MÁS CERCANO</b><br>"
                 f"{nearest_server.name}<br>"
                 f"ID: {nearest_server.node_id}<br>"
-                f"Lat: {nearest_server.lat}<br>"
-                f"Lon: {nearest_server.lon}"
+                f"Latitud: {nearest_server.lat}<br>"
+                f"Longitud: {nearest_server.lon}"
                 "<extra></extra>"
             ),
         ))
@@ -279,8 +279,8 @@ def build_network_figure(
             textfont=dict(size=10, color="#00bcd4", family="Arial Black"),
             hovertemplate=(
                 f"<b>📍 NUEVO CLIENTE</b><br>"
-                f"Lat: {lat_c:.4f}<br>"
-                f"Lon: {lon_c:.4f}"
+                f"Latitud: {lat_c:.4f}<br>"
+                f"Longitud: {lon_c:.4f}"
                 "<extra></extra>"
             ),
         ))
@@ -389,7 +389,7 @@ def build_complexity_chart() -> go.Figure:
 
 
 def _base_edges_xy(graph: Graph):
-    """Returns (x_list, y_list) for all edges as a single Scatter-compatible sequence."""
+    """Devuelve (x_list, y_list) para todas las aristas como una secuencia compatible con Scatter."""
     xs, ys = [], []
     for (src_id, tgt_id, _, _, _) in graph.get_all_edges():
         try:
@@ -403,7 +403,7 @@ def _base_edges_xy(graph: Graph):
 
 
 def _animation_layout(title: str, n_frames: int, speed_ms: int) -> go.Layout:
-    """Shared Plotly layout for timelapse figures."""
+    """Layout compartido de Plotly para figuras de secuencia temporal."""
     return go.Layout(
         title=title,
         paper_bgcolor="#faf8f4",
@@ -421,7 +421,7 @@ def _animation_layout(title: str, n_frames: int, speed_ms: int) -> go.Layout:
             direction="left",
             buttons=[
                 dict(
-                    label="▶ Play",
+                    label="▶ Reproducir",
                     method="animate",
                     args=[None, {
                         "frame": {"duration": speed_ms, "redraw": True},
@@ -490,7 +490,7 @@ def build_dijkstra_map_timelapse(
         current = step["current"]
         prev = step["prev"]
 
-        # Shortest-path tree edges (settled prev pointers)
+        # Aristas del árbol de caminos mínimos (punteros prev ya asentados)
         tree_x, tree_y = [], []
         for nid in step["visited"]:
             parent = prev.get(nid)
@@ -512,19 +512,19 @@ def build_dijkstra_map_timelapse(
             curr_nodes = []
 
         return [
-            # 0 — base edges
+            # 0 — aristas base
             go.Scatter(
                 x=base_x, y=base_y, mode="lines",
                 line=dict(color="rgba(58,58,92,0.22)", width=0.9),
                 hoverinfo="skip", showlegend=False,
             ),
-            # 1 — shortest-path tree (cian)
+            # 1 — árbol de caminos mínimos (cian)
             go.Scatter(
                 x=tree_x, y=tree_y, mode="lines",
                 line=dict(color="#00bcd4", width=2.8),
                 showlegend=False, hoverinfo="skip",
             ),
-            # 2 — unvisited nodes (dimmed)
+            # 2 — nodos no visitados (atenuados)
             go.Scatter(
                 x=[n.lon for n in unvisited],
                 y=[n.lat for n in unvisited],
@@ -532,7 +532,7 @@ def build_dijkstra_map_timelapse(
                 marker=dict(size=9, color="rgba(58,58,92,0.28)"),
                 hoverinfo="skip", showlegend=False,
             ),
-            # 3 — settled nodes (cian)
+            # 3 — nodos asentados (cian)
             go.Scatter(
                 x=[n.lon for n in settled],
                 y=[n.lat for n in settled],
@@ -548,7 +548,7 @@ def build_dijkstra_map_timelapse(
                 textfont=dict(size=8, color="#00bcd4"),
                 showlegend=False,
             ),
-            # 4 — current node (gold star)
+            # 4 — nodo actual (estrella dorada)
             go.Scatter(
                 x=[n.lon for n in curr_nodes],
                 y=[n.lat for n in curr_nodes],
@@ -584,13 +584,13 @@ def build_dijkstra_map_timelapse(
         ))
 
     layout = _animation_layout(
-        "Dijkstra — Expansión de la colonia sobre la red",
+        "Dijkstra — Expansión paso a paso sobre la red",
         len(frames),
         speed_ms,
     )
     fig = go.Figure(data=_traces(steps[0]), frames=frames, layout=layout)
-    # CDMX boundary appended last — animation frames only update traces 0‥4,
-    # so this trace persists unchanged across all frames.
+    # El contorno de CDMX se agrega al final; los frames solo actualizan trazas 0‥4,
+    # por eso esta traza permanece igual en todos los frames.
     fig.add_trace(_cdmx_boundary_trace())
     return fig
 
@@ -623,7 +623,7 @@ def build_prim_map_timelapse(
         current_edge = step.get("current_edge")
         new_node_id = current_edge.target if current_edge else None
 
-        # MST edges already settled (green), excluding the current one
+        # Aristas del MST ya asentadas (verde), excepto la arista actual
         mst_x, mst_y = [], []
         for e in mst_edges_so_far:
             if current_edge and e.source == current_edge.source and e.target == current_edge.target:
@@ -636,7 +636,7 @@ def build_prim_map_timelapse(
             except KeyError:
                 pass
 
-        # Current edge being added (gold)
+        # Arista actual que se está agregando (dorado)
         cur_ex, cur_ey = [], []
         if current_edge:
             try:
@@ -657,25 +657,25 @@ def build_prim_map_timelapse(
                 pass
 
         return [
-            # 0 — base edges
+            # 0 — aristas base
             go.Scatter(
                 x=base_x, y=base_y, mode="lines",
                 line=dict(color="rgba(58,58,92,0.22)", width=0.9),
                 hoverinfo="skip", showlegend=False,
             ),
-            # 1 — settled MST edges (green)
+            # 1 — aristas asentadas del MST (verde)
             go.Scatter(
                 x=mst_x, y=mst_y, mode="lines",
                 line=dict(color="#2ecc71", width=3),
                 showlegend=False, hoverinfo="skip",
             ),
-            # 2 — current edge being added (gold)
+            # 2 — arista actual que se agrega (dorado)
             go.Scatter(
                 x=cur_ex, y=cur_ey, mode="lines",
                 line=dict(color="#ffd700", width=5),
                 showlegend=False, hoverinfo="skip",
             ),
-            # 3 — nodes outside MST (dimmed)
+            # 3 — nodos fuera del MST (atenuados)
             go.Scatter(
                 x=[n.lon for n in not_in_mst],
                 y=[n.lat for n in not_in_mst],
@@ -683,7 +683,7 @@ def build_prim_map_timelapse(
                 marker=dict(size=9, color="rgba(58,58,92,0.28)"),
                 hoverinfo="skip", showlegend=False,
             ),
-            # 4 — nodes already in MST (green)
+            # 4 — nodos ya incluidos en el MST (verde)
             go.Scatter(
                 x=[n.lon for n in settled_mst],
                 y=[n.lat for n in settled_mst],
@@ -699,7 +699,7 @@ def build_prim_map_timelapse(
                 textfont=dict(size=8, color="#2ecc71"),
                 showlegend=False,
             ),
-            # 5 — newly added node (gold burst)
+            # 5 — nodo recién agregado (dorado)
             go.Scatter(
                 x=[n.lon for n in new_nodes],
                 y=[n.lat for n in new_nodes],
@@ -750,8 +750,8 @@ def build_prim_map_timelapse(
         speed_ms,
     )
     fig = go.Figure(data=_traces(steps[0]), frames=frames, layout=layout)
-    # CDMX boundary appended last — animation frames only update traces 0‥5,
-    # so this trace persists unchanged across all frames.
+    # El contorno de CDMX se agrega al final; los frames solo actualizan trazas 0‥5,
+    # por eso esta traza permanece igual en todos los frames.
     fig.add_trace(_cdmx_boundary_trace())
     return fig
 
@@ -917,7 +917,7 @@ def build_kdtree_partition_figure(
             showlegend=False,
             hovertemplate=(
                 f"<b>{'⭐ ' if is_nearest else ''}{s.name}</b><br>"
-                f"Lat: {s.lat:.4f}<br>Lon: {s.lon:.4f}<extra></extra>"
+                    f"Latitud: {s.lat:.4f}<br>Longitud: {s.lon:.4f}<extra></extra>"
             ),
         ))
 
@@ -975,7 +975,7 @@ def build_dijkstra_steps_chart(
     """
     Gráfica de barras animada mostrando cómo Dijkstra actualiza distancias.
 
-    Args:
+    Parámetros:
         steps: Lista de dicts con el estado de dist[] en cada iteración.
         graph: Grafo para obtener nombres de nodos.
     """
@@ -1043,11 +1043,11 @@ def build_dijkstra_steps_chart(
             updatemenus=[dict(
                 type="buttons",
                 buttons=[
-                    dict(label="▶ Play",
+                    dict(label="▶ Reproducir",
                          method="animate",
                          args=[None, {"frame": {"duration": 700, "redraw": True},
                                       "fromcurrent": True}]),
-                    dict(label="⏸ Pause",
+                    dict(label="⏸ Pausa",
                          method="animate",
                          args=[[None], {"frame": {"duration": 0},
                                         "mode": "immediate"}]),

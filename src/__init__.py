@@ -1,1 +1,1 @@
-# NetOptimizer — ISP Network Optimizer
+# NetOptimizer — Optimizador de Red ISP

@@ -1,5 +1,5 @@
 """
-tests/test_hash_map.py — Tests unitarios para HashMap.
+tests/test_hash_map.py — Pruebas unitarias para HashMap.
 """
 
 import sys, os
@@ -10,7 +10,7 @@ from src.hash_map import HashMap
 
 
 class TestHashMapBasic:
-    """Tests básicos de inserción y recuperación."""
+    """Pruebas básicos de inserción y recuperación."""
 
     def test_put_and_get(self):
         hm = HashMap()
@@ -44,7 +44,7 @@ class TestHashMapBasic:
 
 
 class TestHashMapContains:
-    """Tests para contains y operador in."""
+    """Pruebas para contains y operador in."""
 
     def test_contains_existing_key(self):
         hm = HashMap()
@@ -57,13 +57,13 @@ class TestHashMapContains:
 
     def test_in_operator(self):
         hm = HashMap()
-        hm.put("server", "S01")
-        assert "server" in hm
+        hm.put("servidor", "S01")
+        assert "servidor" in hm
         assert "otro" not in hm
 
 
 class TestHashMapRemove:
-    """Tests para eliminación."""
+    """Pruebas para eliminación."""
 
     def test_remove_existing_key(self):
         hm = HashMap()
@@ -85,7 +85,7 @@ class TestHashMapRemove:
 
 
 class TestHashMapSize:
-    """Tests de tamaño."""
+    """Pruebas de tamaño."""
 
     def test_empty_map_size(self):
         assert len(HashMap()) == 0
@@ -104,7 +104,7 @@ class TestHashMapSize:
 
 
 class TestHashMapKeys:
-    """Tests para keys(), values(), items()."""
+    """Pruebas para keys(), values(), items()."""
 
     def test_keys_returns_all_keys(self):
         hm = HashMap()
@@ -128,7 +128,7 @@ class TestHashMapKeys:
 
 
 class TestHashMapRehash:
-    """Tests de rehashing automático."""
+    """Pruebas de rehashing automático."""
 
     def test_rehash_preserves_data(self):
         """Insertar suficientes elementos para provocar rehash y verificar datos."""
@@ -149,14 +149,14 @@ class TestHashMapRehash:
 
 
 class TestHashMapCollisions:
-    """Tests de manejo de colisiones."""
+    """Pruebas de manejo de colisiones."""
 
     def test_collision_separate_chaining(self):
         """
-        Claves que colisionan en el mismo bucket deben coexistir.
+        Claves que colisionan en la misma cubeta deben coexistir.
         Usamos un HashMap pequeño para forzar colisiones.
         """
-        hm = HashMap(capacity=2)  # Solo 2 buckets → muchas colisiones
+        hm = HashMap(capacity=2)  # Solo 2 cubetas → muchas colisiones
         hm.put("servidor_central", "S01")
         hm.put("servidor_norte", "S02")
         hm.put("servidor_sur", "S03")
@@ -170,7 +170,7 @@ class TestHashMapCollisions:
 
 
 class TestHashMapOperators:
-    """Tests de operadores mágicos."""
+    """Pruebas de operadores mágicos."""
 
     def test_setitem_getitem(self):
         hm = HashMap()
@@ -182,4 +182,4 @@ class TestHashMapOperators:
         hm.put("k", 1)
         r = repr(hm)
         assert "HashMap" in r
-        assert "size=1" in r
+        assert "tamaño=1" in r

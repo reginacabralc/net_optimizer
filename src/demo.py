@@ -37,7 +37,7 @@ DEFAULT_LON = -99.1332
 def print_banner() -> None:
     """Imprime el banner de inicio del demo."""
     print("\n" + "═" * 60)
-    print("  🌐  NetOptimizer — ISP Network Optimizer")
+    print("  🌐  NetOptimizer — Optimizador de Red ISP")
     print("      Variante 4 | Estructuras de Datos y Algoritmos")
     print("═" * 60 + "\n")
 
@@ -53,7 +53,7 @@ def run_demo(client_lat: float, client_lon: float) -> None:
     """
     Ejecuta el demo completo de NetOptimizer.
 
-    Args:
+    Parámetros:
         client_lat: Latitud del nuevo cliente.
         client_lon: Longitud del nuevo cliente.
     """
@@ -69,7 +69,7 @@ def run_demo(client_lat: float, client_lon: float) -> None:
     print(graph.node_index.stats())
 
     # Demo de búsqueda por nombre
-    test_name = "Datacenter Norte"
+    test_name = "Centro de Datos Norte"
     t0 = time.perf_counter()
     try:
         found = graph.get_node_by_name(test_name)
@@ -187,13 +187,13 @@ def main() -> None:
         "--lat",
         type=float,
         default=DEFAULT_LAT,
-        help=f"Latitud del nuevo cliente (default: {DEFAULT_LAT})",
+        help=f"Latitud del nuevo cliente (valor por defecto: {DEFAULT_LAT})",
     )
     parser.add_argument(
         "--lon",
         type=float,
         default=DEFAULT_LON,
-        help=f"Longitud del nuevo cliente (default: {DEFAULT_LON})",
+        help=f"Longitud del nuevo cliente (valor por defecto: {DEFAULT_LON})",
     )
     args = parser.parse_args()
 

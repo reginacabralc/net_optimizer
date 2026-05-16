@@ -1,5 +1,5 @@
 """
-tests/test_kdtree.py — Tests unitarios para KD-tree 2D.
+tests/test_kdtree.py — Pruebas unitarias para KD-tree 2D.
 """
 
 import sys, os
@@ -38,10 +38,10 @@ def make_cdmx_servers() -> list:
     ]
 
 
-# ── Tests de funciones auxiliares ─────────────────────────────────────────────
+# ── Pruebas de funciones auxiliares ─────────────────────────────────────────────
 
 class TestDistanceFunctions:
-    """Tests para las funciones de distancia."""
+    """Pruebas para las funciones de distancia."""
 
     def test_euclidean_same_point(self):
         assert _euclidean_dist(10.0, 20.0, 10.0, 20.0) == 0.0
@@ -73,10 +73,10 @@ class TestDistanceFunctions:
         assert dist >= 0
 
 
-# ── Tests de construcción ─────────────────────────────────────────────────────
+# ── Pruebas de construcción ─────────────────────────────────────────────────────
 
 class TestKDTreeBuild:
-    """Tests de construcción del KD-tree."""
+    """Pruebas de construcción del KD-tree."""
 
     def test_build_single_node(self):
         tree = KDTree()
@@ -101,10 +101,10 @@ class TestKDTreeBuild:
         assert "5" in repr(tree)
 
 
-# ── Tests de búsqueda ─────────────────────────────────────────────────────────
+# ── Pruebas de búsqueda ─────────────────────────────────────────────────────────
 
 class TestKDTreeNearestNeighbor:
-    """Tests del algoritmo de vecino más cercano."""
+    """Pruebas del algoritmo de vecino más cercano."""
 
     def test_empty_tree_returns_none(self):
         tree = KDTree()
@@ -234,10 +234,10 @@ class TestKDTreeNearestNeighbor:
         assert dist > 0
 
 
-# ── Tests de integración con datos reales ─────────────────────────────────────
+# ── Pruebas de integración con datos reales ─────────────────────────────────────
 
 class TestKDTreeWithRealData:
-    """Tests usando el grafo ISP cargado desde CSV."""
+    """Pruebas usando el grafo ISP cargado desde CSV."""
 
     def test_kdtree_with_loaded_servers(self):
         from src.data_loader import load_graph

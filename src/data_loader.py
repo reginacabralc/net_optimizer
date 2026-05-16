@@ -30,12 +30,12 @@ def load_graph(
     Lee nodes.csv y edges.csv, valida los campos requeridos
     y construye un objeto Graph con todos los nodos y aristas.
 
-    Args:
+    Parámetros:
         nodes_path: Ruta al archivo CSV de nodos.
         edges_path: Ruta al archivo CSV de aristas.
         verbose:    Si True, imprime resumen de carga.
 
-    Returns:
+    Retorna:
         Objeto Graph listo para usar.
 
     Raises:
@@ -113,7 +113,7 @@ def _validate_columns(df: pd.DataFrame, required: list, file_name: str) -> None:
     """
     Verifica que el DataFrame contenga todas las columnas requeridas.
 
-    Args:
+    Parámetros:
         df:        DataFrame a validar.
         required:  Lista de nombres de columnas requeridas.
         file_name: Nombre del archivo (para mensajes de error).

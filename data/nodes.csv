@@ -1,7 +1,7 @@
 node_id,node_type,name,lat,lon
-1,server,Datacenter Norte,19.51,-99.12
-2,server,Datacenter Sur,19.32,-99.12
-3,server,Datacenter Oriente,19.44,-99.03
+1,server,Centro de Datos Norte,19.51,-99.12
+2,server,Centro de Datos Sur,19.32,-99.12
+3,server,Centro de Datos Oriente,19.44,-99.03
 4,router,Nodo Satélite,19.55,-99.02
 5,router,Nodo Ecatepec,19.58,-99.05
 6,router,Nodo Tlalnepantla,19.54,-99.2

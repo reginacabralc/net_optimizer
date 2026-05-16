@@ -1,5 +1,5 @@
 """
-tests/test_dijkstra.py — Tests unitarios para Dijkstra.
+tests/test_dijkstra.py — Pruebas unitarias para Dijkstra.
 """
 
 import sys, os
@@ -41,7 +41,7 @@ def make_simple_graph() -> Graph:
 
 
 class TestDijkstraBasic:
-    """Tests básicos del algoritmo."""
+    """Pruebas básicos del algoritmo."""
 
     def test_distance_to_self_is_zero(self):
         g = make_simple_graph()
@@ -76,7 +76,7 @@ class TestDijkstraBasic:
 
 
 class TestDijkstraPath:
-    """Tests de reconstrucción de caminos."""
+    """Pruebas de reconstrucción de caminos."""
 
     def test_reconstruct_path_a_to_e(self):
         g = make_simple_graph()
@@ -104,7 +104,7 @@ class TestDijkstraPath:
 
 
 class TestDijkstraEdgeCases:
-    """Tests de casos borde."""
+    """Pruebas de casos borde."""
 
     def test_no_path_returns_inf(self):
         """Grafo con nodo aislado — no hay camino."""

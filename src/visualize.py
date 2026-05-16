@@ -57,7 +57,7 @@ def plot_network(
     """
     Genera la visualización completa de la red ISP.
 
-    Args:
+    Parámetros:
         graph:          Grafo de la red ISP.
         mst_edges:      Aristas del MST (Prim). Si None, no se dibujan.
         dijkstra_path:  Lista de node_ids del camino óptimo (Dijkstra).

@@ -1,261 +1,291 @@
-# NetOptimizer — Internet / Telecom Network
-## Regina Cabral and Luciano Ramírez
-NetOptimizer is a data structures project for **Variant 4: Internet / Telecom Network**. It models a small fiber-optic ISP network in Mexico City and demonstrates how classic structures and algorithms solve practical telecom optimization questions:
+# NetOptimizer — Red de Internet / Telecomunicaciones
+## Regina Cabral y Luciano Ramírez
 
-- What is the **minimum-latency route** from a user area to a datacenter?
-- What is the **minimum-cost fiber backbone** that connects all network nodes?
-- Which datacenter is **geographically nearest** to a new client?
-- How can an extra course data structure improve lookup performance?
+NetOptimizer es un proyecto de estructuras de datos para la **Variante 4: Red de Internet / Telecomunicaciones**. Modela una red pequeña de fibra óptica de un ISP en Ciudad de México y muestra cómo los algoritmos clásicos resuelven problemas reales de optimización:
 
-The project includes algorithm modules, CSV data, unit tests, a CLI demo, Matplotlib visualization, and a Streamlit dashboard.
+- ¿Cuál es la **ruta de menor latencia** desde una zona de usuarios hasta un centro de datos?
+- ¿Cuál es la **red troncal de fibra de menor costo** que conecta todos los nodos?
+- ¿Qué centro de datos está **geográficamente más cerca** de un cliente nuevo?
+- ¿Qué estructura de datos adicional mejora el rendimiento de las búsquedas?
 
-## Variant 4 Requirements
+El proyecto incluye módulos de algoritmos, datos CSV, pruebas unitarias, demo por consola, visualización con Matplotlib y panel interactivo con Streamlit.
 
-| Requirement | Project implementation | Main files |
+## Requisitos de la Variante 4
+
+| Requisito | Implementación del proyecto | Archivos principales |
 |---|---|---|
-| Dijkstra for minimum-latency route | Uses `latency_ms` as the edge weight and returns the lowest total latency path. | `src/dijkstra.py`, `src/graph.py` |
-| Prim for minimum-cost fiber network | Uses `cost_usd` as the edge weight and returns the minimum spanning tree. | `src/prim.py`, `src/graph.py` |
-| KD-tree for nearest server | Builds a 2D KD-tree from server/datacenter coordinates and finds the nearest server to a client coordinate. | `src/kdtree.py` |
-| Additional course data structure | Implements a custom `HashMap` with separate chaining and uses it inside `Graph` for node and name indexes. | `src/hash_map.py`, `src/graph.py` |
-| Comparative complexity analysis | Included in module docs, tests, dashboard, and this README. | `README.md`, `app.py` |
+| Dijkstra para ruta de menor latencia | Usa `latency_ms` como peso de arista y devuelve el camino con menor latencia total. | `src/dijkstra.py`, `src/graph.py` |
+| Prim para red de fibra de costo mínimo | Usa `cost_usd` como peso de arista y devuelve el árbol de expansión mínima. | `src/prim.py`, `src/graph.py` |
+| KD-tree para servidor más cercano | Construye un KD-tree 2D con coordenadas de servidores y localiza el más cercano a un cliente nuevo. | `src/kdtree.py` |
+| Estructura adicional del curso | Implementa un `HashMap` propio con encadenamiento separado y lo usa dentro de `Graph` para índices por nodo y nombre. | `src/hash_map.py`, `src/graph.py` |
+| Análisis comparativo de complejidad | Está documentado en módulos, pruebas, dashboard y este README. | `README.md`, `app.py` |
 
-## Data Model
+## Modelo de Datos
 
-Data is stored in CSV files under `data/`.
+Los datos viven en archivos CSV dentro de `data/`.
 
 ### `data/nodes.csv`
 
-| Column | Meaning |
+| Columna | Significado |
 |---|---|
-| `node_id` | Unique node identifier. |
-| `node_type` | One of `server`, `router`, `switch`, or `user`. |
-| `name` | Human-readable network location name. |
-| `lat` | Latitude in decimal degrees. |
-| `lon` | Longitude in decimal degrees. |
+| `node_id` | Identificador único del nodo. |
+| `node_type` | Tipo técnico: `server`, `router`, `switch` o `user`. Se conserva en inglés porque es parte del contrato del código. |
+| `name` | Nombre legible de la ubicación de red. |
+| `lat` | Latitud en grados decimales. |
+| `lon` | Longitud en grados decimales. |
 
 ### `data/edges.csv`
 
-| Column | Meaning |
+| Columna | Significado |
 |---|---|
-| `source` | Origin node id. |
-| `target` | Destination node id. |
-| `latency_ms` | Link latency in milliseconds. This is Dijkstra's optimization criterion. |
-| `cost_usd` | Fiber installation or network cost. This is Prim's optimization criterion. |
-| `bandwidth_gbps` | Link capacity in gigabits per second. This is telecom metadata displayed in edge/path details, but it does not replace latency or cost as the required algorithm weights. |
+| `source` | ID del nodo origen. |
+| `target` | ID del nodo destino. |
+| `latency_ms` | Latencia del enlace en milisegundos. Es el criterio de optimización de Dijkstra. |
+| `cost_usd` | Costo de instalación o despliegue de fibra. Es el criterio de optimización de Prim. |
+| `bandwidth_gbps` | Capacidad del enlace en gigabits por segundo. Se muestra como metadato telecom en rutas y tablas, pero no reemplaza latencia ni costo como pesos requeridos. |
 
-The graph is undirected: every CSV edge is inserted in both directions in the adjacency list.
+El grafo es no dirigido: cada arista del CSV se inserta en ambos sentidos dentro de la lista de adyacencia.
 
-## Algorithms and Structures
+## Algoritmos y Estructuras
 
-### Dijkstra — Minimum Latency
+### Dijkstra — Menor Latencia
 
-`src/dijkstra.py` implements Dijkstra with `heapq` as a min-priority queue.
+`src/dijkstra.py` implementa Dijkstra con `heapq` como cola de prioridad mínima.
 
-- Input: graph, source node, optional target node.
-- Weight used: `latency_ms`.
-- Output: total minimum latency and route.
-- Why Dijkstra: BFS minimizes hop count, not latency. Bellman-Ford supports negative weights but is slower; telecom latencies are non-negative.
+- Entrada: grafo, nodo origen y nodo destino opcional.
+- Peso usado: `latency_ms`.
+- Salida: latencia mínima total y ruta.
+- Justificación: BFS minimiza saltos, no latencia. Bellman-Ford permite pesos negativos, pero es más lento. Las latencias de telecomunicaciones son no negativas, así que Dijkstra es correcto y eficiente.
 
-Complexity:
+Complejidad:
 
-- Time: `O((V + E) log V)` with a min-heap.
-- Space: `O(V)` for distances, predecessors, heap state, and visited nodes.
+- Tiempo: `O((V + E) log V)` con min-heap.
+- Espacio: `O(V)` para distancias, predecesores, heap y nodos visitados.
 
-### Prim — Minimum-Cost Fiber Network
+### Prim — Red de Fibra de Costo Mínimo
 
-`src/prim.py` implements Prim with a min-heap.
+`src/prim.py` implementa Prim con min-heap.
 
-- Input: graph and optional starting node.
-- Weight used: `cost_usd`.
-- Output: MST edges and total cost.
-- Why Prim: it grows a connected fiber backbone by repeatedly choosing the cheapest edge that reaches a new node. It is natural for an ISP network expansion story.
+- Entrada: grafo y nodo inicial opcional.
+- Peso usado: `cost_usd`.
+- Salida: aristas del MST y costo total.
+- Justificación: Prim crece una red conectada eligiendo siempre la arista más barata que alcanza un nodo nuevo. Esto encaja naturalmente con una historia de expansión de infraestructura ISP.
 
-Complexity:
+Complejidad:
 
-- Time: `O(E log V)`.
-- Space: `O(V + E)`.
+- Tiempo: `O(E log V)`.
+- Espacio: `O(V + E)`.
 
-### KD-tree — Nearest Datacenter
+### KD-tree — Centro de Datos Más Cercano
 
-`src/kdtree.py` implements a 2D KD-tree over `(lat, lon)` coordinates for server nodes only.
+`src/kdtree.py` implementa un KD-tree 2D sobre coordenadas `(lat, lon)` usando solo nodos de tipo `server`.
 
-- Input: datacenter/server nodes.
-- Query: new client latitude and longitude.
-- Output: nearest server and distance in kilometers.
-- Why KD-tree: linear search checks every server: `O(n)`. KD-tree partitions the plane and gives average `O(log n)` nearest-neighbor search.
+- Entrada: nodos servidor o centro de datos.
+- Consulta: latitud y longitud del cliente nuevo.
+- Salida: servidor más cercano y distancia en kilómetros.
+- Justificación: una búsqueda lineal revisa todos los servidores: `O(n)`. El KD-tree divide el plano y logra búsqueda promedio `O(log n)`.
 
-Complexity:
+Complejidad:
 
-- Build: `O(n log n)`.
-- Nearest search: `O(log n)` average, `O(n)` worst case.
-- Space: `O(n)`.
+- Construcción: `O(n log n)`.
+- Búsqueda de vecino más cercano: `O(log n)` promedio, `O(n)` peor caso.
+- Espacio: `O(n)`.
 
-### HashMap — Additional Course Data Structure
+### HashMap — Estructura Adicional del Curso
 
-`src/hash_map.py` implements a custom hash table with:
+`src/hash_map.py` implementa una tabla hash propia con:
 
-- Polynomial string hash.
-- Separate chaining for collisions.
-- Automatic rehashing at load factor `0.75`.
+- Función hash polinomial para strings.
+- Encadenamiento separado para colisiones.
+- Rehash automático cuando el factor de carga llega a `0.75`.
 
-The graph uses this HashMap for:
+El grafo usa este HashMap para:
 
-- `node_id -> Node` lookup.
-- `node_id -> adjacency list` lookup.
-- `name -> node_id` lookup.
+- `node_id -> Node`: obtener nodos por ID.
+- `node_id -> lista de adyacencia`: obtener vecinos de un nodo.
+- `name -> node_id`: buscar nodos por nombre legible.
 
-Why HashMap was chosen:
+Por qué se eligió HashMap:
 
-| Operation | HashMap average | Linear list |
+| Operación | HashMap promedio | Lista lineal |
 |---|---:|---:|
-| Insert | `O(1)` amortized | `O(1)` |
-| Search by id/name | `O(1)` average | `O(n)` |
-| Delete | `O(1)` average | `O(n)` |
-| Worst-case search | `O(n)` | `O(n)` |
+| Inserción | `O(1)` amortizado | `O(1)` |
+| Búsqueda por ID/nombre | `O(1)` promedio | `O(n)` |
+| Eliminación | `O(1)` promedio | `O(n)` |
+| Peor caso de búsqueda | `O(n)` | `O(n)` |
 
-The dashboard includes a live lookup and benchmark to justify this choice.
+En este proyecto, la operación más frecuente es la búsqueda exacta por ID o por nombre. Por eso un HashMap es más adecuado que un AVL, Skip List, Trie o Bloom Filter.
 
-## Backend Flow
+## Flujo del Backend
 
-1. `src/data_loader.py` reads `nodes.csv` and `edges.csv`.
-2. It validates required columns, including `bandwidth_gbps`.
-3. It creates immutable `Node` and `Edge` dataclasses from `src/models.py`.
-4. It inserts them into `Graph` from `src/graph.py`.
-5. `Graph` stores nodes and adjacency lists in the custom `HashMap`.
-6. Algorithms consume the graph through `get_neighbors()`, `get_all_nodes()`, and typed node filters.
+1. `src/data_loader.py` lee `nodes.csv` y `edges.csv`.
+2. Valida columnas requeridas, incluyendo `bandwidth_gbps`.
+3. Crea dataclasses inmutables `Node` y `Edge` desde `src/models.py`.
+4. Inserta nodos y aristas en `Graph` desde `src/graph.py`.
+5. `Graph` guarda nodos y listas de adyacencia dentro del `HashMap` propio.
+6. Los algoritmos consumen el grafo mediante `get_neighbors()`, `get_all_nodes()` y filtros por tipo de nodo.
 
-Important graph operations:
+Operaciones importantes del grafo:
 
-| Operation | Complexity | Notes |
+| Operación | Complejidad | Nota |
 |---|---:|---|
-| `add_node` | `O(1)` average | HashMap insert. |
-| `add_edge` | `O(1)` average | Adds two adjacency entries for undirected graph. |
-| `get_node` | `O(1)` average | HashMap lookup. |
-| `get_node_by_name` | `O(1)` average | Uses name index HashMap. |
-| `get_neighbors` | `O(1)` average | Returns adjacency list reference. |
-| `get_all_edges` | `O(V + E)` | Scans adjacency lists and removes duplicates. |
+| `add_node` | `O(1)` promedio | Inserción en HashMap. |
+| `add_edge` | `O(1)` promedio | Agrega dos entradas porque el grafo es no dirigido. |
+| `get_node` | `O(1)` promedio | Búsqueda en HashMap. |
+| `get_node_by_name` | `O(1)` promedio | Usa índice por nombre en HashMap. |
+| `get_neighbors` | `O(1)` promedio | Devuelve la lista de adyacencia. |
+| `get_all_edges` | `O(V + E)` | Recorre adyacencias y evita duplicados. |
 
-## Dashboard Guide
+## Guía del Panel
 
-Run it with:
+Ejecutar con:
 
 ```bash
 streamlit run app.py
 ```
 
-The dashboard loads the graph once with Streamlit caching, builds the KD-tree from server nodes, computes Dijkstra and Prim results from the selected inputs, and renders all views with Plotly.
+El dashboard carga el grafo una vez con cache de Streamlit, construye el KD-tree con los servidores, calcula Dijkstra y Prim según las entradas seleccionadas y renderiza las vistas con Plotly.
 
-### Sidebar
+### Barra Lateral
 
-- Input: new client `Latitud` and `Longitud`.
-- Input: checkboxes for showing MST, Dijkstra route, and nearest server on the main map.
-- Input: Dijkstra source node selector.
-- Backend triggered: graph loading, KD-tree nearest search, Dijkstra route, Prim MST.
+- Entrada: `Latitud` y `Longitud` del cliente nuevo.
+- Entrada: casillas para mostrar MST, ruta Dijkstra y servidor más cercano en el mapa principal.
+- Entrada: selector de nodo origen para Dijkstra.
+- Backend usado: carga de grafo, búsqueda KD-tree, ruta Dijkstra y MST de Prim.
 
-### Tab 1 — Red ISP
+### Pestaña 1 — Red ISP
 
-- Shows the full network map.
-- Displays base edges, nodes by type, the selected Dijkstra path, Prim MST, nearest server, and new client coordinate.
-- Edge hover details include latency, cost, and `bandwidth_gbps`.
-- Demonstrates how all algorithms relate to the same graph.
+- Muestra el mapa completo de la red.
+- Dibuja aristas base, nodos por tipo, ruta Dijkstra, MST de Prim, servidor más cercano y cliente nuevo.
+- El mensaje emergente de enlaces muestra latencia, costo y `bandwidth_gbps`.
+- Demuestra cómo todos los algoritmos trabajan sobre el mismo grafo.
 
-### Tab 2 — Dijkstra paso a paso
+### Pestaña 2 — Dijkstra Paso a Paso
 
-- Input: source node from the sidebar; target is the nearest datacenter from KD-tree.
-- Triggers: `dijkstra_with_steps()` and `shortest_path()`.
-- Output: animated distance chart plus final route table.
-- Route table includes step latency, accumulated latency, and link bandwidth.
+- Entrada: nodo origen de la barra lateral; el destino es el centro de datos más cercano por KD-tree.
+- Ejecuta: `dijkstra_with_steps()` y `shortest_path()`.
+- Salida: animación de distancias y tabla final de la ruta.
+- La tabla incluye latencia por enlace, latencia acumulada y ancho de banda del enlace.
 
-### Tab 3 — Prim MST
+### Pestaña 3 — Prim MST
 
-- Input: no extra user input; starts from the first server in the dataset.
-- Triggers: `prim_mst()`.
-- Output: MST total cost, total cost of all edges, savings, MST edge table, and cumulative cost chart.
-- MST table displays latency, cost, and `bandwidth_gbps`.
+- Entrada: no requiere entrada adicional; empieza desde el primer servidor del dataset.
+- Ejecuta: `prim_mst()`.
+- Salida: costo MST, costo total de todas las aristas, ahorro, tabla de aristas y gráfica de costo acumulado.
+- La tabla muestra latencia, costo y `bandwidth_gbps`.
 
-### Tab 4 — KD-tree
+### Pestaña 4 — KD-tree
 
-- Input: client latitude and longitude from the sidebar.
-- Triggers: KD-tree nearest-neighbor search.
-- Output: nearest datacenter, distance to every server, mini-map, and KD-tree partition visualization.
-- The KD-tree intentionally uses only `server` nodes because the question is where a new client should connect as an access/datacenter endpoint.
+- Entrada: latitud y longitud del cliente desde la barra lateral.
+- Ejecuta: búsqueda de vecino más cercano en KD-tree.
+- Salida: centro de datos más cercano, distancia a cada servidor, mini mapa y visualización de particiones.
+- El KD-tree usa solo nodos `server` porque la pregunta es a qué centro de datos debe conectarse un cliente nuevo.
 
-### Tab 5 — HashMap
+### Pestaña 5 — HashMap
 
-- Input: node name search box.
-- Triggers: `Graph.get_node_by_name()`, backed by the custom HashMap.
-- Output: lookup result, measured microsecond timing, benchmark chart versus linear search, and bucket distribution.
+- Entrada: nombre de nodo en una caja de búsqueda.
+- Ejecuta: `Graph.get_node_by_name()`, respaldado por el HashMap propio.
+- Salida: resultado de búsqueda, tiempo medido en microsegundos, comparación contra búsqueda lineal y distribución de cubetas.
 
-### Tab 6 — Complejidad
+### Pestaña 6 — Complejidad
 
-- Shows complexity table for HashMap, Graph, Dijkstra, Prim, and KD-tree.
-- Includes professor-style FAQ answers.
+- Muestra complejidades de HashMap, Graph, Dijkstra, Prim y KD-tree.
+- Incluye respuestas tipo profesor para defender decisiones de diseño.
 
-### Tab 7 — Timelapse
+### Pestaña 7 — Secuencia Temporal
 
-- Input: animation speed slider.
-- Triggers: `dijkstra_with_steps()` and `prim_with_steps()`.
-- Output: animated map showing Dijkstra expansion and Prim MST growth over the geographic network.
+- Entrada: slider de velocidad de animación.
+- Ejecuta: `dijkstra_with_steps()` y `prim_with_steps()`.
+- Salida: mapas animados que muestran la expansión de Dijkstra y el crecimiento del MST de Prim.
 
-## Install and Run
+## Instalación y Ejecución
 
-Create and activate a virtual environment:
+Crear y activar entorno virtual:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 ```
 
-Install dependencies:
+Instalar dependencias:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Run tests:
+Ejecutar pruebas:
 
 ```bash
 pytest -q
 ```
 
-Run the dashboard:
+Ejecutar dashboard:
 
 ```bash
 streamlit run app.py
 ```
 
-Run the CLI menu:
+Ejecutar menú por consola:
 
 ```bash
 python src/main.py
 ```
 
-Run the scripted demo:
+Ejecutar demo guiado:
 
 ```bash
 python src/demo.py
 python src/demo.py --lat 19.4326 --lon -99.1332
 ```
 
-## Recreating or Reseeding Data
+## Recrear o Rellenar los Datos
 
-There is no external database. The "database" for this project is the CSV data in `data/`.
+No hay base de datos externa. La "base de datos" del proyecto son los CSV en `data/`.
 
-To reseed:
+Para reseed:
 
-1. Edit `data/nodes.csv` and `data/edges.csv`.
-2. Keep all required columns.
-3. Ensure every edge `source` and `target` exists in `nodes.csv`.
-4. Keep `latency_ms`, `cost_usd`, and `bandwidth_gbps` non-negative.
-5. Run `pytest -q`.
-6. Run `streamlit run app.py` and verify the dashboard.
+1. Editar `data/nodes.csv` y `data/edges.csv`.
+2. Mantener todas las columnas requeridas.
+3. Verificar que cada `source` y `target` exista en `nodes.csv`.
+4. Mantener `latency_ms`, `cost_usd` y `bandwidth_gbps` como valores no negativos.
+5. Ejecutar `pytest -q`.
+6. Ejecutar `streamlit run app.py` y revisar el dashboard.
 
-## Assumptions and Limitations
+## Supuestos y Limitaciones
 
-- The network is modeled as undirected fiber links.
-- Dijkstra optimizes latency only; bandwidth is displayed as capacity metadata.
-- Prim optimizes cost only; bandwidth is displayed for context.
-- KD-tree uses server nodes only and Euclidean pruning internally, then reports final Haversine distance in kilometers.
-- The dataset is intentionally small for a class presentation; complexity benefits become more visible with larger networks.
-- Streamlit and Plotly are used only for presentation; core algorithms are implemented manually.
+- La red se modela como enlaces de fibra no dirigidos.
+- Dijkstra optimiza solo latencia; el ancho de banda se muestra como metadato de capacidad.
+- Prim optimiza solo costo; el ancho de banda se muestra para contexto.
+- KD-tree usa solo servidores y poda con distancia euclidiana; al final reporta distancia Haversine en kilómetros.
+- El dataset es pequeño para facilitar una presentación de clase; los beneficios de complejidad se vuelven más visibles con redes más grandes.
+- Streamlit y Plotly se usan para presentación; los algoritmos centrales están implementados manualmente.
 
+## Mejoras Futuras Sugeridas
+
+| Mejora | Por qué ayuda | Archivos/área | Dificultad |
+|---|---|---|---|
+| Ruteo con restricción de ancho de banda mínimo. | Haría que `bandwidth_gbps` participe en una decisión operativa, no solo visual. | `src/dijkstra.py`, `app.py`, pruebas | Media |
+| Reporte de validación para grafos desconectados o endpoints inválidos. | Mejora la calidad de datos y la confianza en la demo. | `src/data_loader.py`, `tests/` | Baja |
+| Generador de redes sintéticas grandes. | Hace más contundentes las comparaciones de complejidad. | `data/`, nuevo script de seed, dashboard | Media |
+| Modo comparativo KD-tree con Haversine. | Permite discutir aproximación geométrica vs precisión geográfica. | `src/kdtree.py`, `app.py` | Media |
+| Botones de exportación para resultados de MST y Dijkstra. | Facilita reportes y evidencias en presentación. | `app.py` | Baja |
+
+## Plan de Presentación en 10 Minutos
+
+1. **0:00-0:45 — Problema.** Explicar metas del ISP: latencia, costo de fibra y centro de datos más cercano.
+2. **0:45-1:30 — Datos.** Mostrar nodos y aristas, especialmente `latency_ms`, `cost_usd` y `bandwidth_gbps`.
+3. **1:30-2:30 — Graph y HashMap.** Explicar lista de adyacencia e índice HashMap propio.
+4. **2:30-4:00 — KD-tree.** Cambiar coordenadas del cliente y mostrar servidor más cercano.
+5. **4:00-5:45 — Dijkstra.** Seleccionar origen y mostrar ruta con latencia.
+6. **5:45-7:15 — Prim.** Mostrar ahorros del MST y tabla de aristas.
+7. **7:15-8:15 — Secuencia temporal.** Reproducir animaciones de Dijkstra y Prim.
+8. **8:15-9:15 — Complejidad.** Usar tabla y comparación de HashMap.
+9. **9:15-10:00 — Cierre.** Confirmar cómo se cumple cada requisito de Variante 4 y mencionar mejoras futuras.
+
+## Resumen de Cumplimiento
+
+- Dijkstra: cumple; usa `latency_ms`.
+- Prim: cumple; usa `cost_usd`.
+- KD-tree: cumple; localiza el servidor geográficamente más cercano.
+- Estructura adicional: cumple; HashMap propio implementado y usado por `Graph`.
+- Coherencia telecom: cumple; nodos, enlaces de fibra, latencia, costo, ancho de banda, rutas, MST y centro de datos cercano forman un solo sistema ISP.

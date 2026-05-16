@@ -1,8 +1,8 @@
 """
-hash_map.py — HashMap propio con separate chaining.
+hash_map.py — HashMap propio con encadenamiento separado.
 
 Implementación manual de tabla hash para demostrar O(1) promedio
-en insert, get y delete. Usa separate chaining (listas enlazadas)
+en insert, get y delete. Usa encadenamiento separado (listas enlazadas)
 para resolver colisiones.
 
 Complejidad:
@@ -29,7 +29,7 @@ _INITIAL_CAPACITY = 64
 
 
 class _Entry:
-    """Nodo de la lista enlazada en cada bucket."""
+    """Nodo de la lista enlazada en cada cubeta."""
 
     __slots__ = ("key", "value", "next_entry")
 
@@ -41,9 +41,9 @@ class _Entry:
 
 class HashMap:
     """
-    Tabla hash con separate chaining.
+    Tabla hash con encadenamiento separado.
 
-    Cada bucket es el inicio de una lista enlazada de _Entry.
+    Cada cubeta es el inicio de una lista enlazada de _Entry.
     Cuando el factor de carga supera _MAX_LOAD_FACTOR, la tabla
     se duplica y se rehashean todas las entradas.
 
@@ -59,8 +59,8 @@ class HashMap:
         """
         Inicializa la tabla hash.
 
-        Args:
-            capacity: Número inicial de buckets (preferible potencia de 2).
+        Parámetros:
+            capacity: Número inicial de cubetas (preferible potencia de 2).
         """
         self._capacity: int = capacity
         self._size: int = 0
@@ -76,13 +76,13 @@ class HashMap:
         h = h * 33 ^ ord(c)  para cada c en key
 
         Produce distribución uniforme para strings de nombres de nodos.
-        El módulo garantiza índice dentro del rango de buckets.
+        El módulo garantiza índice dentro del rango de cubetas.
 
-        Args:
+        Parámetros:
             key: Clave string a hashear.
 
-        Returns:
-            Índice de bucket (0 ≤ índice < capacidad).
+        Retorna:
+            Índice de cubeta (0 ≤ índice < capacidad).
         """
         h = 5381
         for ch in key:
@@ -98,7 +98,7 @@ class HashMap:
         Si la clave ya existe, actualiza el valor.
         Si el factor de carga supera el umbral, realiza rehash.
 
-        Args:
+        Parámetros:
             key:   Clave string (ej: node_id o nombre de nodo).
             value: Valor a asociar (cualquier objeto).
         """
@@ -124,10 +124,10 @@ class HashMap:
         """
         Obtiene el valor asociado a la clave.
 
-        Args:
+        Parámetros:
             key: Clave a buscar.
 
-        Returns:
+        Retorna:
             Valor asociado a la clave.
 
         Raises:
@@ -143,14 +143,14 @@ class HashMap:
 
     def get_or_default(self, key: str, default: Any = None) -> Any:
         """
-        Obtiene el valor o devuelve default si la clave no existe.
+        Obtiene el valor o devuelve el valor por defecto si la clave no existe.
 
-        Args:
+        Parámetros:
             key:     Clave a buscar.
             default: Valor por defecto si no existe la clave.
 
-        Returns:
-            Valor asociado o default.
+        Retorna:
+            Valor asociado o valor por defecto.
         """
         try:
             return self.get(key)
@@ -161,10 +161,10 @@ class HashMap:
         """
         Elimina la entrada con la clave dada.
 
-        Args:
+        Parámetros:
             key: Clave a eliminar.
 
-        Returns:
+        Retorna:
             True si se eliminó, False si no existía.
         """
         idx = self._hash(key)
@@ -188,10 +188,10 @@ class HashMap:
         """
         Verifica si la clave existe en la tabla.
 
-        Args:
+        Parámetros:
             key: Clave a verificar.
 
-        Returns:
+        Retorna:
             True si existe, False si no.
         """
         idx = self._hash(key)
@@ -206,7 +206,7 @@ class HashMap:
         """
         Retorna lista de todas las claves en la tabla.
 
-        Returns:
+        Retorna:
             Lista de claves (orden no garantizado).
         """
         result: List[str] = []
@@ -221,7 +221,7 @@ class HashMap:
         """
         Retorna lista de todos los valores en la tabla.
 
-        Returns:
+        Retorna:
             Lista de valores (orden no garantizado).
         """
         result: List[Any] = []
@@ -236,7 +236,7 @@ class HashMap:
         """
         Retorna lista de (key, value) para todas las entradas.
 
-        Returns:
+        Retorna:
             Lista de tuplas (key, value).
         """
         result: List[Tuple[str, Any]] = []
@@ -287,17 +287,17 @@ class HashMap:
 
     def __repr__(self) -> str:
         return (
-            f"HashMap(size={self._size}, "
-            f"capacity={self._capacity}, "
-            f"load={self._load_factor():.2f})"
+            f"HashMap(tamaño={self._size}, "
+            f"capacidad={self._capacity}, "
+            f"carga={self._load_factor():.2f})"
         )
 
     def stats(self) -> str:
         """
         Retorna estadísticas de la tabla para análisis en demo.
 
-        Returns:
-            String con estadísticas de distribución de buckets.
+        Retorna:
+            Cadena con estadísticas de distribución de cubetas.
         """
         used = sum(1 for b in self._buckets if b is not None)
         max_chain = 0
@@ -314,11 +314,11 @@ class HashMap:
 
         avg_chain = total_chain / used if used > 0 else 0
         return (
-            f"HashMap Stats:\n"
+            f"Estadísticas HashMap:\n"
             f"  Entradas:      {self._size}\n"
             f"  Capacidad:     {self._capacity}\n"
             f"  Factor de carga: {self._load_factor():.3f}\n"
-            f"  Buckets usados:{used}/{self._capacity}\n"
+            f"  Cubetas usadas:{used}/{self._capacity}\n"
             f"  Cadena máxima: {max_chain}\n"
             f"  Cadena promedio: {avg_chain:.2f}"
         )

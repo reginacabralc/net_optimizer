@@ -56,11 +56,11 @@ def _euclidean_dist(lat1: float, lon1: float, lat2: float, lon2: float) -> float
     es una aproximación razonable. Para distancias intercontinentales
     se usaría la fórmula de Haversine.
 
-    Args:
+    Parámetros:
         lat1, lon1: Coordenadas del punto 1.
         lat2, lon2: Coordenadas del punto 2.
 
-    Returns:
+    Retorna:
         Distancia euclídea en grados (aproximación de distancia geográfica).
     """
     return math.sqrt((lat1 - lat2) ** 2 + (lon1 - lon2) ** 2)
@@ -73,11 +73,11 @@ def _haversine_dist(lat1: float, lon1: float, lat2: float, lon2: float) -> float
     Fórmula exacta para distancia sobre la esfera terrestre.
     Se usa en el reporte final para mostrar km reales.
 
-    Args:
+    Parámetros:
         lat1, lon1: Coordenadas del punto 1 (grados decimales).
         lat2, lon2: Coordenadas del punto 2 (grados decimales).
 
-    Returns:
+    Retorna:
         Distancia en kilómetros.
     """
     R = 6371.0  # Radio de la Tierra en km
@@ -116,7 +116,7 @@ class KDTree:
 
         Esto garantiza un árbol balanceado con profundidad O(log n).
 
-        Args:
+        Parámetros:
             nodes: Lista de Node a insertar (típicamente servidores).
 
         Raises:
@@ -133,11 +133,11 @@ class KDTree:
         """
         Construye el subárbol recursivamente.
 
-        Args:
+        Parámetros:
             nodes: Lista de nodos a insertar en este subárbol.
             depth: Profundidad actual (determina el eje de división).
 
-        Returns:
+        Retorna:
             Raíz del subárbol construido, o None si nodes está vacío.
         """
         if not nodes:
@@ -181,11 +181,11 @@ class KDTree:
                de división del eje actual).
             4. Si sí, explorar el otro subárbol también.
 
-        Args:
+        Parámetros:
             lat: Latitud del nuevo cliente.
             lon: Longitud del nuevo cliente.
 
-        Returns:
+        Retorna:
             (nodo_más_cercano, distancia_en_km)
             (None, inf) si el árbol está vacío.
         """
@@ -216,7 +216,7 @@ class KDTree:
         """
         Búsqueda recursiva del vecino más cercano.
 
-        Args:
+        Parámetros:
             node:  Nodo actual del KD-tree.
             lat:   Latitud del punto de consulta.
             lon:   Longitud del punto de consulta.
@@ -254,4 +254,4 @@ class KDTree:
         return self._size
 
     def __repr__(self) -> str:
-        return f"KDTree(size={self._size})"
+        return f"KDTree(tamaño={self._size})"

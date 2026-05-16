@@ -43,11 +43,11 @@ def prim_mst(
     Inicia desde start_id y crece el árbol agregando siempre
     la arista de menor costo que conecte un nodo nuevo al árbol.
 
-    Args:
+    Parámetros:
         graph:    Grafo de la red ISP.
         start_id: ID del nodo inicial. Si es None, usa el primer nodo.
 
-    Returns:
+    Retorna:
         (mst_edges, total_cost)
         mst_edges:  Lista de Edge que forman el MST.
         total_cost: Costo total en USD del MST.
@@ -128,11 +128,11 @@ def prim_with_steps(
     Ejecuta Prim capturando el estado del MST después de cada arista agregada.
     Usado para el timelapse del mapa en el dashboard.
 
-    Args:
+    Parámetros:
         graph:    Grafo de la red ISP.
         start_id: ID del nodo inicial.
 
-    Returns:
+    Retorna:
         Lista de dicts con estado en cada paso. Cada dict contiene:
           - in_mst:       set de node_ids ya en el MST
           - mst_edges:    lista de Edge ya añadidas al MST
@@ -202,12 +202,12 @@ def mst_summary(mst_edges: List[Edge], graph: Graph) -> str:
     """
     Genera un resumen legible del MST para la demo.
 
-    Args:
+    Parámetros:
         mst_edges: Lista de aristas del MST.
         graph:     Grafo para obtener nombres de nodos.
 
-    Returns:
-        String formateado con el resumen del MST.
+    Retorna:
+        Cadena formateada con el resumen del MST.
     """
     lines = [
         f"MST — Red de fibra de costo mínimo",

@@ -1,5 +1,5 @@
 """
-tests/test_prim.py — Tests unitarios para Prim MST.
+tests/test_prim.py — Pruebas unitarias para Prim MST.
 """
 
 import sys, os
@@ -49,7 +49,7 @@ def make_graph() -> Graph:
 
 
 class TestPrimBasic:
-    """Tests básicos del algoritmo Prim."""
+    """Pruebas básicos del algoritmo Prim."""
 
     def test_mst_has_v_minus_1_edges(self):
         g = make_graph()
@@ -97,7 +97,7 @@ class TestPrimBasic:
 
 
 class TestPrimEdgeCases:
-    """Tests de casos borde."""
+    """Pruebas de casos borde."""
 
     def test_single_node_empty_mst(self):
         g = Graph()
@@ -142,7 +142,7 @@ class TestPrimEdgeCases:
 
 
 class TestPrimWithRealData:
-    """Tests con el grafo ISP real."""
+    """Pruebas con el grafo ISP real."""
 
     def test_prim_on_isp_graph(self):
         """El MST del grafo ISP debe ser válido."""

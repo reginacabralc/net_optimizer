@@ -1,5 +1,5 @@
 """
-app.py — Dashboard interactivo de NetOptimizer.
+app.py — Panel interactivo de NetOptimizer.
 
 Corre con: streamlit run app.py
 
@@ -8,7 +8,7 @@ Tabs:
   ⚡  Dijkstra     — animación paso a paso
   🌿  Prim MST     — tabla de aristas del árbol de expansión mínima
   🔍  KD-tree      — comparación servidor más cercano vs todos
-  #️⃣  HashMap      — benchmark O(1) vs O(n) con tiempos reales
+  #️⃣  HashMap      — prueba comparativa O(1) vs O(n) con tiempos reales
   📋  Resumen      — tabla de complejidades y guía de presentación
 """
 
@@ -35,6 +35,13 @@ from src.visualize_plotly import (
     build_prim_map_timelapse,
     build_kdtree_partition_figure,
 )
+
+NODE_TYPE_LABELS = {
+    "server": "Servidor",
+    "router": "Router",
+    "switch": "Switch",
+    "user": "Usuario",
+}
 
 # ── Configuración de página ────────────────────────────────────────────────────
 st.set_page_config(
@@ -101,7 +108,7 @@ def get_kdtree(_graph):
 # ── Sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("## 🌐 NetOptimizer")
-    st.markdown("**ISP Network Optimizer**")
+    st.markdown("**Optimizador de Red ISP**")
     st.markdown("---")
 
     st.markdown('<div class="section-title">📍 Nuevo Cliente</div>', unsafe_allow_html=True)
@@ -158,7 +165,7 @@ dij_path_names = " → ".join(
 
 
 # ── Header ─────────────────────────────────────────────────────────────────────
-st.markdown("# 🌐 NetOptimizer — ISP Network Dashboard")
+st.markdown("# 🌐 NetOptimizer — Panel de Red ISP")
 st.markdown(
     f"Red de **{graph.num_nodes} nodos** y **{graph.num_edges} aristas** · "
     f"Ciudad de México"
@@ -196,9 +203,9 @@ with c4:
     hm = graph.node_index
     st.markdown(f"""
     <div class="metric-card">
-      <div class="label">#️⃣ HashMap — Load Factor</div>
+      <div class="label">#️⃣ HashMap — Factor de Carga</div>
       <div class="value">{hm._load_factor():.2f}</div>
-      <div class="sub">{len(hm)} entradas · {hm._capacity} buckets</div>
+      <div class="sub">{len(hm)} entradas · {hm._capacity} cubetas</div>
     </div>""", unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
@@ -211,7 +218,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "🔍  KD-tree",
     "#️⃣  HashMap",
     "📋  Complejidad",
-    "🎬  Timelapse",
+    "🎬  Secuencia temporal",
 ])
 
 
@@ -273,9 +280,9 @@ with tab2:
             rows.append({
                 "Salto": i,
                 "Nodo": node.name,
-                "Tipo": node.node_type,
+                "Tipo": NODE_TYPE_LABELS.get(node.node_type, node.node_type),
                 "Latencia paso (ms)": latency_step if i > 0 else "—",
-                "Bandwidth enlace (Gbps)": bandwidth_step if i > 0 else "—",
+                "Ancho de banda enlace (Gbps)": bandwidth_step if i > 0 else "—",
                 "Latencia acumulada (ms)": cumulative,
             })
         df = pd.DataFrame(rows)
@@ -320,7 +327,7 @@ with tab3:
             "Destino": tgt_name,
             "Latencia (ms)": e.latency_ms,
             "Costo (USD)": f"${e.cost_usd:,.0f}",
-            "Bandwidth (Gbps)": e.bandwidth_gbps,
+            "Ancho de banda (Gbps)": e.bandwidth_gbps,
         })
     df_mst = pd.DataFrame(mst_rows)
     st.dataframe(df_mst, use_container_width=True, hide_index=True)
@@ -415,7 +422,7 @@ with tab4:
                 textfont=dict(color="#ffd700" if is_nearest else "#e74c3c", size=10),
                 name=s.name,
                 showlegend=False,
-                hovertemplate=f"<b>{s.name}</b><br>Lat:{s.lat}<br>Lon:{s.lon}<extra></extra>",
+                hovertemplate=f"<b>{s.name}</b><br>Latitud:{s.lat}<br>Longitud:{s.lon}<extra></extra>",
             ))
             # Línea de distancia al cliente
             fig_kd.add_trace(go.Scatter(
@@ -457,7 +464,7 @@ with tab4:
     st.info(
         "**¿Por qué el KD-tree solo usa servidores?**\n\n"
         "El KD-tree responde una sola pregunta: "
-        "*¿a qué **datacenter** me conecto?* "
+        "*¿a qué **centro de datos** me conecto?* "
         "Un cliente nuevo no elige su router ni su switch — esos son nodos internos de la red "
         "que ya están asignados. Lo que sí elige (o el ISP elige por él) es el **servidor de acceso** "
         "geográficamente más cercano, porque menor distancia física implica menor latencia inicial.\n\n"
@@ -477,7 +484,7 @@ with tab4:
 
     st.markdown("---")
     c1, c2 = st.columns(2)
-    c1.metric("KD-tree build", "O(n log n)", "construcción del árbol")
+    c1.metric("Construcción KD-tree", "O(n log n)", "construcción del árbol")
     c2.metric("KD-tree búsqueda", "O(log n) prom", "vs O(n) búsqueda lineal")
 
 
@@ -491,15 +498,15 @@ with tab5:
 
     col_a, col_b, col_c, col_d = st.columns(4)
     col_a.metric("Entradas", len(hm))
-    col_b.metric("Capacidad", hm._capacity, "buckets")
+    col_b.metric("Capacidad", hm._capacity, "cubetas")
     col_c.metric("Factor de carga", f"{hm._load_factor():.3f}", "umbral: 0.75")
     col_d.metric("Rehash en", f"{int(hm._capacity * 0.75)} entradas")
 
     # Búsqueda en vivo
     st.markdown("#### 🔎 Búsqueda en vivo por nombre")
     search_name = st.text_input(
-        "Nombre del nodo (ej: Datacenter Norte, Zona Insurgentes)",
-        value="Datacenter Norte",
+        "Nombre del nodo (ej: Centro de Datos Norte, Zona Insurgentes)",
+        value="Centro de Datos Norte",
         placeholder="Escribe un nombre...",
     )
     if search_name:
@@ -510,25 +517,26 @@ with tab5:
             elapsed_us = (t1 - t0) * 1e6
             st.success(
                 f"✅ Encontrado en **{elapsed_us:.2f} µs**  |  "
-                f"`{found.node_id}` · {found.name} · {found.node_type} · "
+                f"`{found.node_id}` · {found.name} · "
+                f"{NODE_TYPE_LABELS.get(found.node_type, found.node_type)} · "
                 f"({found.lat}, {found.lon})"
             )
         except KeyError:
             st.error(f"❌ '{search_name}' no encontrado. Nodos disponibles:")
             st.write([n.name for n in graph.get_all_nodes()])
 
-    # Benchmark O(1) vs O(n)
-    st.markdown("#### 📊 Benchmark: HashMap O(1) vs Búsqueda Lineal O(n)")
+    # Comparación O(1) vs O(n)
+    st.markdown("#### 📊 Comparación: HashMap O(1) vs Búsqueda Lineal O(n)")
     st.markdown(
         "Tiempos reales medidos en tu máquina. "
         "Cada punto es el promedio de 500 búsquedas."
     )
-    with st.spinner("Ejecutando benchmark..."):
+    with st.spinner("Ejecutando comparación..."):
         fig_bench = build_complexity_chart()
     st.plotly_chart(fig_bench, use_container_width=True)
 
-    # Distribución de buckets
-    st.markdown("#### 🪣 Distribución de buckets (separate chaining)")
+    # Distribución de cubetas
+    st.markdown("#### 🪣 Distribución de cubetas (encadenamiento separado)")
     bucket_data = []
     for i, bucket in enumerate(hm._buckets):
         chain_len = 0
@@ -537,20 +545,20 @@ with tab5:
             chain_len += 1
             entry = entry.next_entry
         if chain_len > 0:
-            bucket_data.append({"Bucket": i, "Longitud de cadena": chain_len})
+            bucket_data.append({"Cubeta": i, "Longitud de cadena": chain_len})
 
     if bucket_data:
         df_buckets = pd.DataFrame(bucket_data)
         fig_buckets = go.Figure(go.Bar(
-            x=df_buckets["Bucket"].astype(str),
+            x=df_buckets["Cubeta"].astype(str),
             y=df_buckets["Longitud de cadena"],
             marker_color="#5b8dd9",
             text=df_buckets["Longitud de cadena"],
             textposition="outside",
         ))
         fig_buckets.update_layout(
-            title="Entradas por bucket (solo buckets no vacíos)",
-            xaxis_title="Bucket #",
+            title="Entradas por cubeta (solo cubetas no vacías)",
+            xaxis_title="Cubeta #",
             yaxis_title="Longitud de cadena",
             paper_bgcolor="#faf8f4",
             plot_bgcolor="#f5f0e8",
@@ -569,13 +577,13 @@ with tab6:
 
     complexity_data = [
         {"Módulo": "HashMap", "Operación": "put / get / remove", "Tiempo": "O(1) prom", "Espacio": "O(n)", "Nota": "O(n) peor caso (todas colisionan)"},
-        {"Módulo": "HashMap", "Operación": "rehash", "Tiempo": "O(n)", "Espacio": "O(n)", "Nota": "Ocurre cuando load factor ≥ 0.75"},
+        {"Módulo": "HashMap", "Operación": "rehash", "Tiempo": "O(n)", "Espacio": "O(n)", "Nota": "Ocurre cuando el factor de carga ≥ 0.75"},
         {"Módulo": "Graph", "Operación": "add_node / add_edge", "Tiempo": "O(1)", "Espacio": "O(1)", "Nota": "Lista de adyacencia"},
-        {"Módulo": "Graph", "Operación": "get_neighbors", "Tiempo": "O(1)", "Espacio": "—", "Nota": "Lookup en HashMap"},
+        {"Módulo": "Graph", "Operación": "get_neighbors", "Tiempo": "O(1)", "Espacio": "—", "Nota": "Búsqueda en HashMap"},
         {"Módulo": "Dijkstra", "Operación": "ruta completa", "Tiempo": "O((V+E) log V)", "Espacio": "O(V)", "Nota": "Con min-heap"},
         {"Módulo": "Prim", "Operación": "MST completo", "Tiempo": "O(E log V)", "Espacio": "O(V+E)", "Nota": "Con min-heap"},
-        {"Módulo": "KD-tree", "Operación": "build", "Tiempo": "O(n log n)", "Espacio": "O(n)", "Nota": "Ordenar en cada nivel"},
-        {"Módulo": "KD-tree", "Operación": "nearest_neighbor", "Tiempo": "O(log n) prom", "Espacio": "O(log n)", "Nota": "O(n) peor caso: datos lineales"},
+        {"Módulo": "KD-tree", "Operación": "construcción", "Tiempo": "O(n log n)", "Espacio": "O(n)", "Nota": "Ordenar en cada nivel"},
+        {"Módulo": "KD-tree", "Operación": "vecino más cercano", "Tiempo": "O(log n) prom", "Espacio": "O(log n)", "Nota": "O(n) peor caso: datos lineales"},
     ]
     df_c = pd.DataFrame(complexity_data)
     st.dataframe(df_c, use_container_width=True, hide_index=True)
@@ -585,13 +593,13 @@ with tab6:
 
     steps_pres = [
         ("0:00–0:45", "Introducción", "El problema ISP: latencia, fibra, geolocalización. Variante 4."),
-        ("0:45–2:00", "Arquitectura", "Explicar CSV → Graph/HashMap → algoritmos → dashboard."),
-        ("2:00–3:30", "Tab HashMap", "Búsqueda en vivo + benchmark O(1) vs O(n) + distribución de buckets."),
-        ("3:30–5:00", "Tab KD-tree", "Cambiar coordenadas GPS, ver servidor actualizado, mini-mapa."),
-        ("5:00–6:30", "Tab Dijkstra", "Animación paso a paso, tabla de saltos, latencia final."),
-        ("6:30–8:00", "Tab Prim MST", "Tabla de aristas, gráfica de costo acumulado, ahorro vs red completa."),
-        ("8:00–9:00", "Tab Red ISP", "Mapa interactivo completo: zoom, hover, todos los algoritmos juntos."),
-        ("9:00–10:00", "Tab Complejidad", "Tabla de complejidades + preguntas del profesor."),
+        ("0:45–2:00", "Arquitectura", "Explicar CSV → Graph/HashMap → algoritmos → panel."),
+        ("2:00–3:30", "Pestaña HashMap", "Búsqueda en vivo + comparación O(1) vs O(n) + distribución de cubetas."),
+        ("3:30–5:00", "Pestaña KD-tree", "Cambiar coordenadas GPS, ver servidor actualizado, mini-mapa."),
+        ("5:00–6:30", "Pestaña Dijkstra", "Animación paso a paso, tabla de saltos, latencia final."),
+        ("6:30–8:00", "Pestaña Prim MST", "Tabla de aristas, gráfica de costo acumulado, ahorro vs red completa."),
+        ("8:00–9:00", "Pestaña Red ISP", "Mapa interactivo completo: zoom, mensajes emergentes y todos los algoritmos juntos."),
+        ("9:00–10:00", "Pestaña Complejidad", "Tabla de complejidades + preguntas del profesor."),
     ]
     for tiempo, seccion, descripcion in steps_pres:
         with st.expander(f"⏱️ {tiempo} — {seccion}"):
@@ -604,7 +612,7 @@ with tab6:
         "¿Por qué HashMap y no el dict de Python?": (
             "El dict de Python es una tabla hash, pero no controlamos la función hash, "
             "la resolución de colisiones ni el rehashing. Nuestro HashMap usa djb2 "
-            "con separate chaining y rehash automático al 0.75 de factor de carga. "
+            "con encadenamiento separado y rehash automático al 0.75 de factor de carga. "
             "Podemos explicar cada decisión de diseño con detalle."
         ),
         "¿Dijkstra funciona con pesos negativos?": (
@@ -624,10 +632,10 @@ with tab6:
             "El peor caso de búsqueda es O(n) si los puntos están todos alineados, "
             "pero con coordenadas GPS geográficas eso no ocurre en la práctica."
         ),
-        "¿Por qué separate chaining y no open addressing?": (
-            "Separate chaining es más predecible con strings similares. "
+        "¿Por qué encadenamiento separado y no direccionamiento abierto?": (
+            "El encadenamiento separado es más predecible con strings similares. "
             "Con factor de carga < 0.75, el promedio es O(1). "
-            "Open addressing con linear probing sufre clustering primario "
+            "El direccionamiento abierto con sondeo lineal sufre agrupamiento primario "
             "que degrada las búsquedas incluso con factor de carga moderado."
         ),
     }
@@ -637,14 +645,14 @@ with tab6:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB 7 — Timelapse
+# TAB 7 — Secuencia temporal
 # ══════════════════════════════════════════════════════════════════════════════
 with tab7:
-    st.markdown("### 🎬 Expansión de algoritmos — Timelapse")
+    st.markdown("### 🎬 Expansión de algoritmos — Secuencia temporal")
     st.markdown(
         "Visualiza cómo **Dijkstra** y **Prim** se expanden nodo a nodo sobre el mapa "
         "geográfico real de la red, como una colonia que crece. "
-        "Usa ▶ Play o el slider para avanzar paso a paso."
+        "Usa ▶ Reproducir o el control deslizante para avanzar paso a paso."
     )
 
     col_spd, _ = st.columns([1, 3])
@@ -656,7 +664,7 @@ with tab7:
 
     st.markdown("---")
 
-    # ── Dijkstra timelapse ─────────────────────────────────────────────────────
+    # ── Secuencia temporal de Dijkstra ─────────────────────────────────────────
     st.markdown("#### ⚡ Dijkstra — Árbol de caminos mínimos creciendo")
     st.caption(
         "Cada paso asienta un nodo (estrella dorada → cian). "
@@ -669,7 +677,7 @@ with tab7:
 
     st.markdown("---")
 
-    # ── Prim timelapse ─────────────────────────────────────────────────────────
+    # ── Secuencia temporal de Prim ─────────────────────────────────────────────
     st.markdown("#### 🌿 Prim MST — Red de fibra creciendo desde el primer servidor")
     st.caption(
         "Cada paso añade la arista de menor costo que conecta un nodo nuevo al árbol. "

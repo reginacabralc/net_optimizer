@@ -19,7 +19,7 @@ class Node:
 
     Attributes:
         node_id:   Identificador único (ej: '1', '10').
-        name:      Nombre legible (ej: 'Datacenter Norte').
+        name:      Nombre legible (ej: 'Centro de Datos Norte').
         node_type: Tipo de nodo: 'server' | 'router' | 'switch' | 'user'.
         lat:       Latitud GPS (grados decimales).
         lon:       Longitud GPS (grados decimales).
