@@ -60,7 +60,7 @@ def load_graph(
     edges_df = pd.read_csv(edges_path)
     _validate_columns(
         edges_df,
-        required=["source", "target", "latency_ms", "cost_usd"],
+        required=["source", "target", "latency_ms", "cost_usd", "bandwidth_gbps"],
         file_name=edges_path,
     )
 
@@ -92,6 +92,7 @@ def load_graph(
                 target=str(row["target"]).strip(),
                 latency_ms=float(row["latency_ms"]),
                 cost_usd=float(row["cost_usd"]),
+                bandwidth_gbps=float(row["bandwidth_gbps"]),
             )
             graph.add_edge(edge)
         except (ValueError, KeyError) as e:

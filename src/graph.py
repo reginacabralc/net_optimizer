@@ -5,6 +5,7 @@ Internamente usa el HashMap propio para indexar nodos y almacenar
 las listas de adyacencia. Cada arista tiene dos pesos:
   - latency_ms: usado por Dijkstra
   - cost_usd:   usado por Prim
+  - bandwidth_gbps: capacidad informativa del enlace
 
 Complejidad de espacio: O(V + E)
 """
@@ -16,8 +17,8 @@ from src.models import Edge, Node
 
 
 # Tipo de cada entrada en la lista de adyacencia:
-# (neighbor_id, latency_ms, cost_usd)
-AdjEntry = Tuple[str, float, float]
+# (neighbor_id, latency_ms, cost_usd, bandwidth_gbps)
+AdjEntry = Tuple[str, float, float, float]
 
 
 class Graph:
@@ -35,7 +36,7 @@ class Graph:
         """Inicializa el grafo vacío."""
         # Índice principal: node_id → Node
         self._nodes: HashMap = HashMap()
-        # Lista de adyacencia: node_id → [(neighbor_id, latency, cost)]
+        # Lista de adyacencia: node_id → [(neighbor_id, latency, cost, bandwidth)]
         self._adj: HashMap = HashMap()
         # Índice por nombre: name → node_id
         self._name_index: HashMap = HashMap()
@@ -64,7 +65,7 @@ class Graph:
         La arista se registra en ambas direcciones (source→target y target→source).
 
         Args:
-            edge: Objeto Edge con source, target, latency_ms y cost_usd.
+            edge: Objeto Edge con source, target, latency_ms, cost_usd y bandwidth.
 
         Raises:
             ValueError: Si alguno de los nodos no existe en el grafo.
@@ -80,11 +81,15 @@ class Graph:
 
         # source → target
         neighbors_src: List[AdjEntry] = self._adj.get(edge.source)
-        neighbors_src.append((edge.target, edge.latency_ms, edge.cost_usd))
+        neighbors_src.append(
+            (edge.target, edge.latency_ms, edge.cost_usd, edge.bandwidth_gbps)
+        )
 
         # target → source (grafo no dirigido)
         neighbors_tgt: List[AdjEntry] = self._adj.get(edge.target)
-        neighbors_tgt.append((edge.source, edge.latency_ms, edge.cost_usd))
+        neighbors_tgt.append(
+            (edge.source, edge.latency_ms, edge.cost_usd, edge.bandwidth_gbps)
+        )
 
     # ── Consultas ─────────────────────────────────────────────────────────────
 
@@ -108,7 +113,7 @@ class Graph:
         Retorna el nodo con el nombre dado (búsqueda O(1) via HashMap).
 
         Args:
-            name: Nombre legible del nodo (ej: 'Router-Reforma').
+            name: Nombre legible del nodo (ej: 'Datacenter Norte').
 
         Returns:
             Objeto Node.
@@ -127,7 +132,7 @@ class Graph:
             node_id: ID del nodo.
 
         Returns:
-            Lista de (neighbor_id, latency_ms, cost_usd).
+            Lista de (neighbor_id, latency_ms, cost_usd, bandwidth_gbps).
         """
         return self._adj.get_or_default(node_id, [])
 
@@ -160,22 +165,22 @@ class Graph:
         """Verifica si un nodo existe."""
         return self._nodes.contains(node_id)
 
-    def get_all_edges(self) -> List[Tuple[str, str, float, float]]:
+    def get_all_edges(self) -> List[Tuple[str, str, float, float, float]]:
         """
         Retorna todas las aristas del grafo (sin duplicados).
 
         Returns:
-            Lista de (source_id, target_id, latency_ms, cost_usd).
+            Lista de (source_id, target_id, latency_ms, cost_usd, bandwidth_gbps).
             Cada arista aparece una sola vez (source < target lexicográficamente).
         """
         seen = set()
         edges = []
         for node_id in self._adj.keys():
-            for (neighbor, latency, cost) in self._adj.get(node_id):
+            for (neighbor, latency, cost, bandwidth) in self._adj.get(node_id):
                 key = tuple(sorted([node_id, neighbor]))
                 if key not in seen:
                     seen.add(key)
-                    edges.append((node_id, neighbor, latency, cost))
+                    edges.append((node_id, neighbor, latency, cost, bandwidth))
         return edges
 
     # ── Propiedades ───────────────────────────────────────────────────────────

@@ -88,7 +88,7 @@ def plot_network(
             dijkstra_edge_set.add(key)
 
     # ── 1. Dibujar aristas base (todas) ──────────────────────────────────────
-    for (src_id, tgt_id, latency, cost) in all_edges:
+    for (src_id, tgt_id, latency, cost, bandwidth) in all_edges:
         try:
             src = graph.get_node(src_id)
             tgt = graph.get_node(tgt_id)

@@ -73,16 +73,16 @@ def prim_mst(
     mst_edges: List[Edge] = []
     total_cost: float = 0.0
 
-    # Min-heap: (cost_usd, source_id, target_id, latency_ms)
+    # Min-heap: (cost_usd, source_id, target_id, latency_ms, bandwidth_gbps)
     # Iniciamos con todas las aristas del nodo inicial
-    heap: List[Tuple[float, str, str, float]] = []
-    for (neighbor, latency, cost) in graph.get_neighbors(start_id):
-        heapq.heappush(heap, (cost, start_id, neighbor, latency))
+    heap: List[Tuple[float, str, str, float, float]] = []
+    for (neighbor, latency, cost, bandwidth) in graph.get_neighbors(start_id):
+        heapq.heappush(heap, (cost, start_id, neighbor, latency, bandwidth))
 
     # Continuar hasta que el MST tenga V-1 aristas o no haya más candidatas
     while heap and len(mst_edges) < graph.num_nodes - 1:
         # Extraer la arista de menor costo — O(log E)
-        cost, u, v, latency = heapq.heappop(heap)
+        cost, u, v, latency, bandwidth = heapq.heappop(heap)
 
         # Si v ya está en el MST, esta arista formaría un ciclo → saltar
         if v in in_mst:
@@ -98,12 +98,16 @@ def prim_mst(
             target=v,
             latency_ms=latency,
             cost_usd=cost,
+            bandwidth_gbps=bandwidth,
         ))
 
         # Agregar al heap las aristas de v hacia nodos aún no en el MST
-        for (neighbor, neigh_latency, neigh_cost) in graph.get_neighbors(v):
+        for (neighbor, neigh_latency, neigh_cost, neigh_bandwidth) in graph.get_neighbors(v):
             if neighbor not in in_mst:
-                heapq.heappush(heap, (neigh_cost, v, neighbor, neigh_latency))
+                heapq.heappush(
+                    heap,
+                    (neigh_cost, v, neighbor, neigh_latency, neigh_bandwidth),
+                )
 
     # Advertir si el grafo no es conexo (no se pudo conectar todos los nodos)
     if len(mst_edges) < graph.num_nodes - 1:
@@ -156,18 +160,24 @@ def prim_with_steps(
         "total_cost": 0.0,
     })
 
-    heap: List[Tuple[float, str, str, float]] = []
-    for (neighbor, latency, cost) in graph.get_neighbors(start_id):
-        heapq.heappush(heap, (cost, start_id, neighbor, latency))
+    heap: List[Tuple[float, str, str, float, float]] = []
+    for (neighbor, latency, cost, bandwidth) in graph.get_neighbors(start_id):
+        heapq.heappush(heap, (cost, start_id, neighbor, latency, bandwidth))
 
     while heap and len(mst_edges) < graph.num_nodes - 1:
-        cost, u, v, latency = heapq.heappop(heap)
+        cost, u, v, latency, bandwidth = heapq.heappop(heap)
 
         if v in in_mst:
             continue
 
         in_mst.add(v)
-        new_edge = Edge(source=u, target=v, latency_ms=latency, cost_usd=cost)
+        new_edge = Edge(
+            source=u,
+            target=v,
+            latency_ms=latency,
+            cost_usd=cost,
+            bandwidth_gbps=bandwidth,
+        )
         mst_edges.append(new_edge)
         total_cost = sum(e.cost_usd for e in mst_edges)
 
@@ -178,9 +188,12 @@ def prim_with_steps(
             "total_cost": total_cost,
         })
 
-        for (neighbor, neigh_latency, neigh_cost) in graph.get_neighbors(v):
+        for (neighbor, neigh_latency, neigh_cost, neigh_bandwidth) in graph.get_neighbors(v):
             if neighbor not in in_mst:
-                heapq.heappush(heap, (neigh_cost, v, neighbor, neigh_latency))
+                heapq.heappush(
+                    heap,
+                    (neigh_cost, v, neighbor, neigh_latency, neigh_bandwidth),
+                )
 
     return steps
 
@@ -212,5 +225,6 @@ def mst_summary(mst_edges: List[Edge], graph: Graph) -> str:
         lines.append(
             f"  {i:2d}. {src_name:28s} → {tgt_name:28s} "
             f"  ${edge.cost_usd:>8,.0f} USD  |  {edge.latency_ms} ms"
+            f"  |  {edge.bandwidth_gbps:g} Gbps"
         )
     return "\n".join(lines)

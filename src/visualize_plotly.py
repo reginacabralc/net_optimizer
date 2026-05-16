@@ -134,7 +134,7 @@ def build_network_figure(
     all_edges = graph.get_all_edges()
 
     # ── Aristas base ──────────────────────────────────────────────────────────
-    for (src_id, tgt_id, latency, cost) in all_edges:
+    for (src_id, tgt_id, latency, cost, bandwidth) in all_edges:
         key = tuple(sorted([src_id, tgt_id]))
         if key in dijkstra_set or key in mst_set:
             continue  # se dibujan después con estilo propio
@@ -148,7 +148,13 @@ def build_network_figure(
             y=[src.lat, tgt.lat, None],
             mode="lines",
             line=dict(color="#3a3a5c", width=1.2),
-            hoverinfo="skip",
+            hovertemplate=(
+                f"<b>Enlace {src_id} ↔ {tgt_id}</b><br>"
+                f"Latencia: {latency:g} ms<br>"
+                f"Costo: ${cost:,.0f} USD<br>"
+                f"Bandwidth: {bandwidth:g} Gbps"
+                "<extra></extra>"
+            ),
             showlegend=False,
         ))
 
@@ -169,6 +175,7 @@ def build_network_figure(
             name="MST — Prim (fibra mínima)",
             line=dict(color="#2ecc71", width=3),
             opacity=0.85,
+            hoverinfo="skip",
         ))
 
     # ── Ruta Dijkstra (rojo) ──────────────────────────────────────────────────
@@ -384,7 +391,7 @@ def build_complexity_chart() -> go.Figure:
 def _base_edges_xy(graph: Graph):
     """Returns (x_list, y_list) for all edges as a single Scatter-compatible sequence."""
     xs, ys = [], []
-    for (src_id, tgt_id, _, _) in graph.get_all_edges():
+    for (src_id, tgt_id, _, _, _) in graph.get_all_edges():
         try:
             src = graph.get_node(src_id)
             tgt = graph.get_node(tgt_id)

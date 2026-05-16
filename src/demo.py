@@ -69,7 +69,7 @@ def run_demo(client_lat: float, client_lon: float) -> None:
     print(graph.node_index.stats())
 
     # Demo de búsqueda por nombre
-    test_name = "Router-Reforma"
+    test_name = "Datacenter Norte"
     t0 = time.perf_counter()
     try:
         found = graph.get_node_by_name(test_name)
@@ -144,10 +144,11 @@ def run_demo(client_lat: float, client_lon: float) -> None:
     # ── PASO 5: Prim — MST de menor costo ────────────────────────────────────
     print_section("PASO 5 — Prim: red de fibra de costo mínimo (MST)")
 
-    mst_edges, total_cost = prim_mst(graph, start_id="S01")
+    first_server = graph.get_nodes_by_type("server")[0].node_id
+    mst_edges, total_cost = prim_mst(graph, start_id=first_server)
     print(mst_summary(mst_edges, graph))
     print(f"\n  Ahorro vs conectar todo individualmente:")
-    all_edge_cost = sum(c for (_, _, _, c) in graph.get_all_edges())
+    all_edge_cost = sum(c for (_, _, _, c, _) in graph.get_all_edges())
     print(f"  Costo de TODAS las aristas: ${all_edge_cost:>10,.0f} USD")
     print(f"  Costo del MST (Prim):       ${total_cost:>10,.0f} USD")
     print(f"  Ahorro:                     ${all_edge_cost - total_cost:>10,.0f} USD")
