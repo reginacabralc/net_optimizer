@@ -90,7 +90,7 @@ def dijkstra(
             break
 
         # Relajar aristas de los vecinos de u
-        for (v, latency, _cost) in graph.get_neighbors(u):
+        for (v, latency, _cost, _bandwidth) in graph.get_neighbors(u):
             if v in visited:
                 continue
 
@@ -169,7 +169,7 @@ def shortest_path(
         Si no hay camino, retorna (inf, []).
 
     Example:
-        >>> latency, path = shortest_path(graph, "U01", "S01")
+        >>> latency, path = shortest_path(graph, "10", "1")
         >>> print(f"Latencia: {latency} ms, Ruta: {' → '.join(path)}")
     """
     dist, prev = dijkstra(graph, source_id, target_id)
@@ -218,7 +218,7 @@ def dijkstra_with_steps(graph: Graph, source_id: str) -> List[dict]:
         visited.add(u)
         visited_order.append(u)
 
-        for (v, latency, _cost) in graph.get_neighbors(u):
+        for (v, latency, _cost, _bandwidth) in graph.get_neighbors(u):
             if v in visited:
                 continue
             new_dist = current_dist + latency

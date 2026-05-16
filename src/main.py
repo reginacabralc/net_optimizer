@@ -101,7 +101,8 @@ def main() -> None:
                 print(f"  Error: {e}")
 
         elif choice == "5":
-            mst_edges, total_cost = prim_mst(graph, start_id="S01")
+            first_server = graph.get_nodes_by_type("server")[0].node_id
+            mst_edges, total_cost = prim_mst(graph, start_id=first_server)
             print(f"\n{mst_summary(mst_edges, graph)}")
 
         elif choice == "6":
@@ -121,7 +122,8 @@ def main() -> None:
             src_node = min(users, key=lambda u: _haversine_dist(lat, lon, u.lat, u.lon))
 
             latency, path = shortest_path(graph, src_node.node_id, nearest.node_id)
-            mst_edges, total_cost = prim_mst(graph, start_id="S01")
+            first_server = graph.get_nodes_by_type("server")[0].node_id
+            mst_edges, total_cost = prim_mst(graph, start_id=first_server)
 
             plot_network(
                 graph=graph,

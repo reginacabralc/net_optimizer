@@ -1,333 +1,290 @@
-# NetOptimizer
+# NetOptimizer — Internet / Telecom Network
 
-**Simulador de red de fibra óptica para ISP** 
-Proyecto Final · Estructuras de Datos y Algoritmos · Variante 4
+NetOptimizer is a data structures project for **Variant 4: Internet / Telecom Network**. It models a small fiber-optic ISP network in Mexico City and demonstrates how classic structures and algorithms solve practical telecom optimization questions:
 
----
+- What is the **minimum-latency route** from a user area to a datacenter?
+- What is the **minimum-cost fiber backbone** that connects all network nodes?
+- Which datacenter is **geographically nearest** to a new client?
+- How can an extra course data structure improve lookup performance?
 
-```
-╔══════════════════════════════════════════════════════════════╗
-║ KD-tree → servidor más cercano O(log n) ║
-║ Dijkstra → ruta de menor latencia O((V+E) log V) ║
-║ Prim MST → fibra de costo mínimo O(E log V) ║
-║ HashMap → búsqueda de nodos O(1) promedio ║
-╚══════════════════════════════════════════════════════════════╝
-```
+The project includes algorithm modules, CSV data, unit tests, a CLI demo, Matplotlib visualization, and a Streamlit dashboard.
 
----
+## Variant 4 Requirements
 
-## El problema
+| Requirement | Project implementation | Main files |
+|---|---|---|
+| Dijkstra for minimum-latency route | Uses `latency_ms` as the edge weight and returns the lowest total latency path. | `src/dijkstra.py`, `src/graph.py` |
+| Prim for minimum-cost fiber network | Uses `cost_usd` as the edge weight and returns the minimum spanning tree. | `src/prim.py`, `src/graph.py` |
+| KD-tree for nearest server | Builds a 2D KD-tree from server/datacenter coordinates and finds the nearest server to a client coordinate. | `src/kdtree.py` |
+| Additional course data structure | Implements a custom `HashMap` with separate chaining and uses it inside `Graph` for node and name indexes. | `src/hash_map.py`, `src/graph.py` |
+| Comparative complexity analysis | Included in module docs, tests, dashboard, and this README. | `README.md`, `app.py` |
 
-Una ISP necesita resolver tres desafíos simultáneamente al conectar un nuevo cliente a su red de fibra óptica:
+## Data Model
 
-1. **¿A qué servidor lo conecto?** → Encontrar el servidor geográficamente más cercano
-2. **¿Por qué ruta llega más rápido?** → Calcular el camino de menor latencia
-3. **¿Cómo tiendo el menor cable posible?** → Red de fibra de costo mínimo
+Data is stored in CSV files under `data/`.
 
-NetOptimizer resuelve los tres sobre una red simulada de **18 nodos en Ciudad de México**, con un dashboard interactivo que permite explorar cada algoritmo en tiempo real.
+### `data/nodes.csv`
 
----
-
-## Demo
-
-```bash
-git clone <repo-url>
-cd netoptimizer
-pip install -r requirements.txt
-streamlit run app.py
-```
-
-Abre automáticamente en `http://localhost:8501`
-
----
-
-## Dashboard
-
-El dashboard tiene **6 tabs interactivos**:
-
-| Tab | Contenido |
+| Column | Meaning |
 |---|---|
-| **Red ISP** | Mapa Plotly zoomable con todos los algoritmos superpuestos. Hover sobre nodos para ver detalles |
-| **Dijkstra paso a paso** | Animación con slider que muestra cómo se actualizan las distancias mínimas en cada iteración |
-| **Prim MST** | Tabla de aristas del árbol + gráfica de costo acumulado vs costo total de la red |
-| **KD-tree** | Mini-mapa con líneas de distancia a todos los servidores + tabla ordenada por cercanía |
-| #⃣ **HashMap** | Búsqueda en vivo con tiempo en µs + benchmark real O(1) vs O(n) + distribución de buckets |
-| **Complejidad** | Tabla comparativa de algoritmos + guía de presentación + FAQs del profesor |
+| `node_id` | Unique node identifier. |
+| `node_type` | One of `server`, `router`, `switch`, or `user`. |
+| `name` | Human-readable network location name. |
+| `lat` | Latitude in decimal degrees. |
+| `lon` | Longitude in decimal degrees. |
 
-**Sidebar:** coordenadas GPS editables, toggles por algoritmo, selector de nodo origen para Dijkstra. Todo actualiza el mapa en tiempo real.
+### `data/edges.csv`
 
----
+| Column | Meaning |
+|---|---|
+| `source` | Origin node id. |
+| `target` | Destination node id. |
+| `latency_ms` | Link latency in milliseconds. This is Dijkstra's optimization criterion. |
+| `cost_usd` | Fiber installation or network cost. This is Prim's optimization criterion. |
+| `bandwidth_gbps` | Link capacity in gigabits per second. This is telecom metadata displayed in edge/path details, but it does not replace latency or cost as the required algorithm weights. |
 
-## Algoritmos implementados
+The graph is undirected: every CSV edge is inserted in both directions in the adjacency list.
 
-> Todos implementados **manualmente** desde cero. Sin NetworkX, sin sklearn, sin scipy.
+## Algorithms and Structures
 
-### Dijkstra — Ruta de menor latencia
+### Dijkstra — Minimum Latency
 
-Encuentra el camino de menor latencia (ms) entre cualquier par de nodos usando un min-heap.
+`src/dijkstra.py` implements Dijkstra with `heapq` as a min-priority queue.
 
-```
-Complejidad: O((V + E) log V) Espacio: O(V)
-Peso usado: latency_ms
-```
+- Input: graph, source node, optional target node.
+- Weight used: `latency_ms`.
+- Output: total minimum latency and route.
+- Why Dijkstra: BFS minimizes hop count, not latency. Bellman-Ford supports negative weights but is slower; telecom latencies are non-negative.
 
-**¿Por qué Dijkstra y no BFS?**
-BFS minimiza saltos, no latencia. Con pesos distintos por arista, BFS puede elegir rutas de pocos saltos pero alta latencia. Dijkstra garantiza el óptimo mientras los pesos sean ≥ 0.
+Complexity:
 
-**¿Por qué no Bellman-Ford?**
-Bellman-Ford soporta pesos negativos → O(VE). Las latencias en nuestra red son siempre positivas, por lo que Dijkstra es correcto y más eficiente.
+- Time: `O((V + E) log V)` with a min-heap.
+- Space: `O(V)` for distances, predecessors, heap state, and visited nodes.
 
-El dashboard incluye animación paso a paso que muestra cómo cada nodo actualiza sus distancias hasta que el frente de onda alcanza el destino.
+### Prim — Minimum-Cost Fiber Network
 
----
+`src/prim.py` implements Prim with a min-heap.
 
-### Prim — Red de fibra de costo mínimo (MST)
+- Input: graph and optional starting node.
+- Weight used: `cost_usd`.
+- Output: MST edges and total cost.
+- Why Prim: it grows a connected fiber backbone by repeatedly choosing the cheapest edge that reaches a new node. It is natural for an ISP network expansion story.
 
-Construye el Árbol de Expansión Mínima que conecta todos los nodos con el menor costo total de instalación de fibra.
+Complexity:
 
-```
-Complejidad: O(E log V) Espacio: O(V + E)
-Peso usado: cost_usd
-```
+- Time: `O(E log V)`.
+- Space: `O(V + E)`.
 
-**¿Por qué Prim y no Kruskal?**
+### KD-tree — Nearest Datacenter
 
-| | Prim | Kruskal |
-|---|---|---|
-| Complejidad | O(E log V) | O(E log E) |
-| Estrategia | Crece desde un nodo | Ordena todas las aristas |
-| Mejor en | Grafos densos | Grafos dispersos |
-| Auxiliar | Min-heap | Union-Find |
+`src/kdtree.py` implements a 2D KD-tree over `(lat, lon)` coordinates for server nodes only.
 
----
+- Input: datacenter/server nodes.
+- Query: new client latitude and longitude.
+- Output: nearest server and distance in kilometers.
+- Why KD-tree: linear search checks every server: `O(n)`. KD-tree partitions the plane and gives average `O(log n)` nearest-neighbor search.
 
-### KD-tree 2D — Servidor más cercano
+Complexity:
 
-Árbol binario que divide el espacio geográfico (lat, lon) para encontrar el servidor más cercano a cualquier coordenada GPS.
+- Build: `O(n log n)`.
+- Nearest search: `O(log n)` average, `O(n)` worst case.
+- Space: `O(n)`.
 
-```
-Build: O(n log n) Espacio: O(n)
-Búsqueda: O(log n) prom Distancia: fórmula Haversine (km reales)
-```
+### HashMap — Additional Course Data Structure
 
-**¿Por qué KD-tree y no búsqueda lineal?**
+`src/hash_map.py` implements a custom hash table with:
 
-| Servidores | Búsqueda lineal | KD-tree |
-|---|---|---|
-| 5 | 5 ops | ~3 ops |
-| 1,000 | 1,000 ops | ~10 ops |
-| 1,000,000 | 1,000,000 ops | ~20 ops |
+- Polynomial string hash.
+- Separate chaining for collisions.
+- Automatic rehashing at load factor `0.75`.
 
----
+The graph uses this HashMap for:
 
-### HashMap — Índice O(1) de nodos
+- `node_id -> Node` lookup.
+- `node_id -> adjacency list` lookup.
+- `name -> node_id` lookup.
 
-Tabla hash con **separate chaining** que indexa todos los nodos por `node_id` y por `name`. Es el pegamento del sistema: el grafo lo usa internamente para su lista de adyacencia.
+Why HashMap was chosen:
 
-```
-put / get / remove: O(1) promedio
-Función hash: djb2 → h = h * 33 ^ ord(c)
-Rehash automático cuando load_factor ≥ 0.75
-Capacidad inicial: 64 buckets
-```
+| Operation | HashMap average | Linear list |
+|---|---:|---:|
+| Insert | `O(1)` amortized | `O(1)` |
+| Search by id/name | `O(1)` average | `O(n)` |
+| Delete | `O(1)` average | `O(n)` |
+| Worst-case search | `O(n)` | `O(n)` |
 
-**Benchmark real medido en ejecución:**
+The dashboard includes a live lookup and benchmark to justify this choice.
 
-```
-n = 10,000 elementos
-HashMap: ~0.15 µs (O(1))
-Búsqueda lineal: ~82.3 µs (O(n))
-Speedup: ~550×
-```
+## Backend Flow
 
----
+1. `src/data_loader.py` reads `nodes.csv` and `edges.csv`.
+2. It validates required columns, including `bandwidth_gbps`.
+3. It creates immutable `Node` and `Edge` dataclasses from `src/models.py`.
+4. It inserts them into `Graph` from `src/graph.py`.
+5. `Graph` stores nodes and adjacency lists in the custom `HashMap`.
+6. Algorithms consume the graph through `get_neighbors()`, `get_all_nodes()`, and typed node filters.
 
-## Estructura de datos del grafo
+Important graph operations:
 
-```
-Graph
-├── _nodes: HashMap[node_id → Node]
-├── _name_index: HashMap[name → node_id]
-└── _adj: HashMap[node_id → List[(neighbor_id, latency_ms, cost_usd)]]
-```
+| Operation | Complexity | Notes |
+|---|---:|---|
+| `add_node` | `O(1)` average | HashMap insert. |
+| `add_edge` | `O(1)` average | Adds two adjacency entries for undirected graph. |
+| `get_node` | `O(1)` average | HashMap lookup. |
+| `get_node_by_name` | `O(1)` average | Uses name index HashMap. |
+| `get_neighbors` | `O(1)` average | Returns adjacency list reference. |
+| `get_all_edges` | `O(V + E)` | Scans adjacency lists and removes duplicates. |
 
-**Lista de adyacencia vs matriz:** La red ISP es dispersa (2–5 vecinos por nodo).
-La lista usa O(V+E); la matriz usaría O(V²). Con 10,000 nodos: 50,000 entradas vs 100 millones.
+## Dashboard Guide
 
----
-
-## Red simulada — Ciudad de México
-
-18 nodos con coordenadas GPS reales:
-
-```
-Servidores (5) Routers (5)
-──────────────────────── ────────────────────────────
-S01 Servidor-Central R01 Router-Reforma
-S02 Servidor-Norte R02 Router-Insurgentes
-S03 Servidor-Sur R03 Router-Periferico-Norte
-S04 Servidor-Oriente R04 Router-Indios-Verdes
-S05 Servidor-Poniente R05 Router-Pantitlan
-
-Switches (3) Usuarios (5)
-──────────────────────── ────────────────────────────
-SW01 Switch-Observatorio U01 Usuario-Polanco
-SW02 Switch-Tasquena U02 Usuario-Coyoacan
-SW03 Switch-Xochimilco U03 Usuario-Santa-Fe
- U04 Usuario-Ecatepec
- U05 Usuario-Tlalpan
-```
-
-26 conexiones: `latency_ms` entre 2–18 ms · `cost_usd` entre $4,000–$20,000
-
----
-
-## Instalación
-
-**Requisitos:** Python 3.9+
+Run it with:
 
 ```bash
-git clone <repo-url>
-cd netoptimizer
-pip install -r requirements.txt
 streamlit run app.py
 ```
 
-```
-streamlit>=1.28.0 # dashboard web
-plotly>=5.15.0 # gráficas interactivas
-matplotlib>=3.5.0 # visualización alternativa
-pandas>=1.3.0 # carga de CSV
-```
+The dashboard loads the graph once with Streamlit caching, builds the KD-tree from server nodes, computes Dijkstra and Prim results from the selected inputs, and renders all views with Plotly.
 
----
+### Sidebar
 
-## Comandos
+- Input: new client `Latitud` and `Longitud`.
+- Input: checkboxes for showing MST, Dijkstra route, and nearest server on the main map.
+- Input: Dijkstra source node selector.
+- Backend triggered: graph loading, KD-tree nearest search, Dijkstra route, Prim MST.
+
+### Tab 1 — Red ISP
+
+- Shows the full network map.
+- Displays base edges, nodes by type, the selected Dijkstra path, Prim MST, nearest server, and new client coordinate.
+- Edge hover details include latency, cost, and `bandwidth_gbps`.
+- Demonstrates how all algorithms relate to the same graph.
+
+### Tab 2 — Dijkstra paso a paso
+
+- Input: source node from the sidebar; target is the nearest datacenter from KD-tree.
+- Triggers: `dijkstra_with_steps()` and `shortest_path()`.
+- Output: animated distance chart plus final route table.
+- Route table includes step latency, accumulated latency, and link bandwidth.
+
+### Tab 3 — Prim MST
+
+- Input: no extra user input; starts from the first server in the dataset.
+- Triggers: `prim_mst()`.
+- Output: MST total cost, total cost of all edges, savings, MST edge table, and cumulative cost chart.
+- MST table displays latency, cost, and `bandwidth_gbps`.
+
+### Tab 4 — KD-tree
+
+- Input: client latitude and longitude from the sidebar.
+- Triggers: KD-tree nearest-neighbor search.
+- Output: nearest datacenter, distance to every server, mini-map, and KD-tree partition visualization.
+- The KD-tree intentionally uses only `server` nodes because the question is where a new client should connect as an access/datacenter endpoint.
+
+### Tab 5 — HashMap
+
+- Input: node name search box.
+- Triggers: `Graph.get_node_by_name()`, backed by the custom HashMap.
+- Output: lookup result, measured microsecond timing, benchmark chart versus linear search, and bucket distribution.
+
+### Tab 6 — Complejidad
+
+- Shows complexity table for HashMap, Graph, Dijkstra, Prim, and KD-tree.
+- Includes professor-style FAQ answers.
+
+### Tab 7 — Timelapse
+
+- Input: animation speed slider.
+- Triggers: `dijkstra_with_steps()` and `prim_with_steps()`.
+- Output: animated map showing Dijkstra expansion and Prim MST growth over the geographic network.
+
+## Install and Run
+
+Create and activate a virtual environment:
 
 ```bash
-streamlit run app.py # dashboard (presentación)
-python src/demo.py # demo consola + matplotlib
-python src/demo.py --lat 19.43 --lon -99.18 # coordenadas personalizadas
-python src/main.py # menú interactivo
-python -m pytest tests/ -v # 76 tests
+python -m venv .venv
+source .venv/bin/activate
 ```
 
----
+Install dependencies:
 
-## Estructura del repositorio
-
-```
-netoptimizer/
-├── app.py ← ENTRY POINT: streamlit run app.py
-├── requirements.txt
-├── README.md
-├── .gitignore
-│
-├── data/
-│ ├── nodes.csv ← 18 nodos (tipo + coordenadas GPS)
-│ └── edges.csv ← 26 aristas (latency_ms + cost_usd)
-│
-├── src/
-│ ├── models.py ← dataclasses Node y Edge
-│ ├── hash_map.py ← HashMap: separate chaining + rehash
-│ ├── graph.py ← grafo con lista de adyacencia + HashMap
-│ ├── dijkstra.py ← Dijkstra + dijkstra_with_steps() (animación)
-│ ├── prim.py ← Prim MST
-│ ├── kdtree.py ← KD-tree 2D + Haversine
-│ ├── data_loader.py ← CSV → Graph
-│ ├── visualize_plotly.py ← figuras Plotly para el dashboard
-│ ├── visualize.py ← matplotlib (demo.py)
-│ ├── demo.py ← demo consola alternativo
-│ └── main.py ← menú interactivo
-│
-└── tests/
- ├── test_hash_map.py ← 19 tests
- ├── test_dijkstra.py ← 16 tests
- ├── test_prim.py ← 13 tests
- └── test_kdtree.py ← 24 tests (incluye validación vs fuerza bruta)
+```bash
+pip install -r requirements.txt
 ```
 
----
+Run tests:
 
-## Complejidad comparativa
+```bash
+pytest -q
+```
 
-| Módulo | Operación | Tiempo | Espacio |
+Run the dashboard:
+
+```bash
+streamlit run app.py
+```
+
+Run the CLI menu:
+
+```bash
+python src/main.py
+```
+
+Run the scripted demo:
+
+```bash
+python src/demo.py
+python src/demo.py --lat 19.4326 --lon -99.1332
+```
+
+## Recreating or Reseeding Data
+
+There is no external database. The "database" for this project is the CSV data in `data/`.
+
+To reseed:
+
+1. Edit `data/nodes.csv` and `data/edges.csv`.
+2. Keep all required columns.
+3. Ensure every edge `source` and `target` exists in `nodes.csv`.
+4. Keep `latency_ms`, `cost_usd`, and `bandwidth_gbps` non-negative.
+5. Run `pytest -q`.
+6. Run `streamlit run app.py` and verify the dashboard.
+
+## Assumptions and Limitations
+
+- The network is modeled as undirected fiber links.
+- Dijkstra optimizes latency only; bandwidth is displayed as capacity metadata.
+- Prim optimizes cost only; bandwidth is displayed for context.
+- KD-tree uses server nodes only and Euclidean pruning internally, then reports final Haversine distance in kilometers.
+- The dataset is intentionally small for a class presentation; complexity benefits become more visible with larger networks.
+- Streamlit and Plotly are used only for presentation; core algorithms are implemented manually.
+
+## Suggested Future Improvements
+
+| Improvement | Why it helps | Files/area | Difficulty |
 |---|---|---|---|
-| HashMap | `put` / `get` / `remove` | **O(1) prom** | O(n) |
-| HashMap | rehash | O(n) | O(n) |
-| Búsqueda lineal | por nombre | O(n) | O(1) |
-| Graph | `add_node` / `add_edge` | O(1) | O(1) |
-| Graph | `get_neighbors` | O(1) | — |
-| **Dijkstra** | ruta completa | **O((V+E) log V)** | O(V) |
-| Bellman-Ford | ruta completa | O(VE) | O(V) |
-| BFS | mínimos saltos | O(V+E) | O(V) |
-| **Prim** | MST completo | **O(E log V)** | O(V+E) |
-| Kruskal | MST completo | O(E log E) | O(V) |
-| **KD-tree** | build | O(n log n) | O(n) |
-| **KD-tree** | `nearest_neighbor` | **O(log n) prom** | O(log n) |
+| Add constrained routing, such as minimum latency with required minimum bandwidth. | Makes `bandwidth_gbps` operational, not only descriptive. | `src/dijkstra.py`, `app.py`, tests | Medium |
+| Add import validation report for disconnected graphs and invalid edge endpoints. | Improves data quality and presentation confidence. | `src/data_loader.py`, `tests/` | Low |
+| Add a larger synthetic network generator. | Makes complexity demos more convincing at scale. | `data/`, new seed script, dashboard benchmark | Medium |
+| Add Haversine-aware KD-tree comparison mode. | Lets the project discuss approximation vs geographic accuracy. | `src/kdtree.py`, `app.py` | Medium |
+| Add export buttons for MST and Dijkstra results. | Useful for reports and live demos. | `app.py` | Low |
 
----
+## 10-Minute Live Presentation Plan
 
-## Preguntas frecuentes del profesor
+1. **0:00-0:45 — Problem.** Explain the ISP goals: latency, fiber cost, nearest datacenter.
+2. **0:45-1:30 — Data.** Show nodes and edges, especially `latency_ms`, `cost_usd`, and `bandwidth_gbps`.
+3. **1:30-2:30 — Graph and HashMap.** Explain adjacency list and custom HashMap lookup.
+4. **2:30-4:00 — KD-tree.** Move the client coordinates and show nearest server and partitions.
+5. **4:00-5:45 — Dijkstra.** Select a user/source, show the route and latency table.
+6. **5:45-7:15 — Prim.** Show MST cost savings and edge table.
+7. **7:15-8:15 — Timelapse.** Play Dijkstra and Prim animations.
+8. **8:15-9:15 — Complexity.** Use the table and HashMap benchmark.
+9. **9:15-10:00 — Wrap-up.** State how every Variant 4 requirement is satisfied and mention future work.
 
-<details>
-<summary><b>¿Por qué HashMap y no el dict de Python?</b></summary>
+## Current Compliance Summary
 
-El `dict` de Python es una tabla hash optimizada en C. Nuestro `HashMap` permite discutir y demostrar cada decisión: función hash djb2, separate chaining, factor de carga 0.75, rehashing. El tab HashMap del dashboard muestra tiempos reales en µs y la distribución de buckets.
-
-</details>
-
-<details>
-<summary><b>¿Por qué separate chaining y no open addressing?</b></summary>
-
-Separate chaining es más predecible con strings similares. Con load factor < 0.75 el promedio es O(1). Open addressing sufre clustering primario: colisiones cercanas provocan que búsquedas siguientes también colisionen, degradando el promedio incluso con carga moderada.
-
-</details>
-
-<details>
-<summary><b>¿Dijkstra funciona con pesos negativos?</b></summary>
-
-No. Dijkstra asume que agregar una arista nunca reduce el costo acumulado, lo que solo es verdad con pesos ≥ 0. Latencias y costos en nuestra red siempre son positivos → Dijkstra es correcto. Para negativos: Bellman-Ford O(VE) vs nuestro O((V+E) log V).
-
-</details>
-
-<details>
-<summary><b>¿Por qué Prim y no Kruskal?</b></summary>
-
-Prim crece desde un nodo con min-heap → O(E log V). Kruskal ordena todas las aristas + Union-Find → O(E log E). En grafos densos (E ≈ V²) Prim es más eficiente. Además mantiene el árbol conexo en todo momento, más natural para una red ISP que se expande gradualmente.
-
-</details>
-
-<details>
-<summary><b>¿El KD-tree está balanceado?</b></summary>
-
-Sí. En cada nivel se ordena por el eje actual y se elige el mediano → ambos subárboles tienen igual cantidad de puntos → profundidad O(log n). Peor caso O(n) solo si todos los puntos están alineados, lo que no ocurre con GPS reales.
-
-</details>
-
-<details>
-<summary><b>¿Por qué Haversine y no distancia euclídea?</b></summary>
-
-El KD-tree usa euclídea internamente para las comparaciones (rápido, sin trigonometría). Solo al reportar el resultado final usamos Haversine para obtener kilómetros reales con curvatura terrestre. Para CDMX (~100km de radio) la diferencia es menor al 1%, pero el reporte en km es más útil para el usuario.
-
-</details>
-
----
-
-## Guía de presentación — 10 minutos
-
-| Tiempo | Qué hacer |
-|---|---|
-| 0:00–0:45 | Problema ISP, variante 4, abrir el dashboard |
-| 0:45–1:45 | Sidebar: cambiar lat/lon, mostrar que todo actualiza en vivo |
-| 1:45–3:00 | Tab HashMap: búsqueda en µs, benchmark O(1) vs O(n), distribución de buckets |
-| 3:00–4:15 | Tab KD-tree: mini-mapa, cambiar coordenadas, ver servidor cambiar |
-| 4:15–5:45 | Tab Dijkstra: animación paso a paso, tabla de saltos y latencia |
-| 5:45–7:00 | Tab Prim MST: aristas, gráfica de ahorro, comparar con Kruskal |
-| 7:00–8:15 | Tab Red ISP: mapa completo, zoom, hover, toggle de capas |
-| 8:15–9:15 | Tab Complejidad: tabla comparativa |
-| 9:15–10:00 | `pytest tests/ -v` → 76 passed. Preguntas |
-
----
-
-*Proyecto desarrollado en 2 días · Equipo L & R · Estructuras de Datos y Algoritmos*
+- Dijkstra: compliant; uses `latency_ms`.
+- Prim: compliant; uses `cost_usd`.
+- KD-tree: compliant; supports nearest-server geospatial search.
+- Additional data structure: compliant; custom HashMap is implemented and used by `Graph`.
+- Telecom coherence: compliant; nodes, fiber links, latency, cost, bandwidth, routes, MST, and nearest datacenter all describe one ISP optimization system.

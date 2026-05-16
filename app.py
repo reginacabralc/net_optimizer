@@ -263,9 +263,11 @@ with tab2:
                 latency_step = 0
             else:
                 prev_nid = dij_path[i-1]
-                for (nb, lat_ms, _) in graph.get_neighbors(prev_nid):
+                bandwidth_step = 0
+                for (nb, lat_ms, _cost, bandwidth) in graph.get_neighbors(prev_nid):
                     if nb == nid:
                         latency_step = lat_ms
+                        bandwidth_step = bandwidth
                         break
             cumulative += latency_step if i > 0 else 0
             rows.append({
@@ -273,6 +275,7 @@ with tab2:
                 "Nodo": node.name,
                 "Tipo": node.node_type,
                 "Latencia paso (ms)": latency_step if i > 0 else "—",
+                "Bandwidth enlace (Gbps)": bandwidth_step if i > 0 else "—",
                 "Latencia acumulada (ms)": cumulative,
             })
         df = pd.DataFrame(rows)
@@ -297,7 +300,7 @@ with tab3:
     st.markdown("### 🌿 Prim — Red de Fibra de Costo Mínimo (MST)")
 
     col_a, col_b, col_c = st.columns(3)
-    all_edge_cost = sum(c for (_, _, _, c) in graph.get_all_edges())
+    all_edge_cost = sum(c for (_, _, _, c, _) in graph.get_all_edges())
     col_a.metric("Costo MST", f"${mst_cost:,.0f} USD", "red mínima")
     col_b.metric("Costo total de red", f"${all_edge_cost:,.0f} USD", "todos los cables")
     col_c.metric("Ahorro", f"${all_edge_cost - mst_cost:,.0f} USD",
@@ -317,6 +320,7 @@ with tab3:
             "Destino": tgt_name,
             "Latencia (ms)": e.latency_ms,
             "Costo (USD)": f"${e.cost_usd:,.0f}",
+            "Bandwidth (Gbps)": e.bandwidth_gbps,
         })
     df_mst = pd.DataFrame(mst_rows)
     st.dataframe(df_mst, use_container_width=True, hide_index=True)
@@ -581,7 +585,7 @@ with tab6:
 
     steps_pres = [
         ("0:00–0:45", "Introducción", "El problema ISP: latencia, fibra, geolocalización. Variante 4."),
-        ("0:45–2:00", "Arquitectura", "Mostrar diagrama en ARCHITECTURE.md. Flujo de datos."),
+        ("0:45–2:00", "Arquitectura", "Explicar CSV → Graph/HashMap → algoritmos → dashboard."),
         ("2:00–3:30", "Tab HashMap", "Búsqueda en vivo + benchmark O(1) vs O(n) + distribución de buckets."),
         ("3:30–5:00", "Tab KD-tree", "Cambiar coordenadas GPS, ver servidor actualizado, mini-mapa."),
         ("5:00–6:30", "Tab Dijkstra", "Animación paso a paso, tabla de saltos, latencia final."),

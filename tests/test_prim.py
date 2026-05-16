@@ -91,7 +91,9 @@ class TestPrimBasic:
             assert hasattr(e, "source")
             assert hasattr(e, "target")
             assert hasattr(e, "cost_usd")
+            assert hasattr(e, "bandwidth_gbps")
             assert e.cost_usd >= 0
+            assert e.bandwidth_gbps >= 0
 
 
 class TestPrimEdgeCases:
@@ -127,7 +129,7 @@ class TestPrimEdgeCases:
         """El costo del MST debe ser ≤ al costo total de todas las aristas."""
         g = make_graph()
         _, mst_cost = prim_mst(g, "A")
-        all_cost = sum(c for (_, _, _, c) in g.get_all_edges())
+        all_cost = sum(c for (_, _, _, c, _) in g.get_all_edges())
         assert mst_cost <= all_cost
 
     def test_different_start_same_cost(self):
@@ -146,7 +148,8 @@ class TestPrimWithRealData:
         """El MST del grafo ISP debe ser válido."""
         from src.data_loader import load_graph
         graph = load_graph()
-        mst_edges, total_cost = prim_mst(graph, "S01")
+        first_server = graph.get_nodes_by_type("server")[0].node_id
+        mst_edges, total_cost = prim_mst(graph, first_server)
         # MST debe tener num_nodes - 1 aristas (si grafo es conexo)
         # o menos si no es completamente conexo
         assert len(mst_edges) >= 1
@@ -155,5 +158,12 @@ class TestPrimWithRealData:
     def test_prim_isp_total_cost_positive(self):
         from src.data_loader import load_graph
         graph = load_graph()
-        _, total_cost = prim_mst(graph, "S01")
+        first_server = graph.get_nodes_by_type("server")[0].node_id
+        _, total_cost = prim_mst(graph, first_server)
         assert total_cost > 0
+
+    def test_real_edges_include_bandwidth(self):
+        from src.data_loader import load_graph
+        graph = load_graph()
+        for _, _, _, _, bandwidth in graph.get_all_edges():
+            assert bandwidth > 0
