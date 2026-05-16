@@ -25,12 +25,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src.data_loader import load_graph
 from src.dijkstra import shortest_path, dijkstra_with_steps
 from src.kdtree import KDTree, _haversine_dist
-from src.prim import prim_mst
+from src.prim import prim_mst, prim_with_steps
 from src.hash_map import HashMap
 from src.visualize_plotly import (
     build_network_figure,
     build_complexity_chart,
     build_dijkstra_steps_chart,
+    build_dijkstra_map_timelapse,
+    build_prim_map_timelapse,
 )
 
 # ── Configuración de página ────────────────────────────────────────────────────
@@ -201,13 +203,14 @@ with c4:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ── Tabs ───────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "🗺️  Red ISP",
     "⚡  Dijkstra paso a paso",
     "🌿  Prim MST",
     "🔍  KD-tree",
     "#️⃣  HashMap",
     "📋  Complejidad",
+    "🎬  Timelapse",
 ])
 
 
@@ -600,3 +603,48 @@ with tab6:
     for pregunta, respuesta in faqs.items():
         with st.expander(f"❓ {pregunta}"):
             st.write(respuesta)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB 7 — Timelapse
+# ══════════════════════════════════════════════════════════════════════════════
+with tab7:
+    st.markdown("### 🎬 Expansión de algoritmos — Timelapse")
+    st.markdown(
+        "Visualiza cómo **Dijkstra** y **Prim** se expanden nodo a nodo sobre el mapa "
+        "geográfico real de la red, como una colonia que crece. "
+        "Usa ▶ Play o el slider para avanzar paso a paso."
+    )
+
+    col_spd, _ = st.columns([1, 3])
+    with col_spd:
+        speed_ms = st.slider(
+            "Velocidad (ms por paso)",
+            min_value=150, max_value=1400, value=650, step=50,
+        )
+
+    st.markdown("---")
+
+    # ── Dijkstra timelapse ─────────────────────────────────────────────────────
+    st.markdown("#### ⚡ Dijkstra — Árbol de caminos mínimos creciendo")
+    st.caption(
+        "Cada paso asienta un nodo (estrella dorada → cian). "
+        "Las líneas cian forman el árbol de caminos mínimos desde el nodo origen. "
+        f"Origen seleccionado: **{source_name}**"
+    )
+    dij_tl_steps = dijkstra_with_steps(graph, source_id)
+    fig_dij_tl = build_dijkstra_map_timelapse(dij_tl_steps, graph, speed_ms=speed_ms)
+    st.plotly_chart(fig_dij_tl, use_container_width=True)
+
+    st.markdown("---")
+
+    # ── Prim timelapse ─────────────────────────────────────────────────────────
+    st.markdown("#### 🌿 Prim MST — Red de fibra creciendo desde el primer servidor")
+    st.caption(
+        "Cada paso añade la arista de menor costo que conecta un nodo nuevo al árbol. "
+        "La arista dorada es la recién añadida; la estrella dorada es el nodo recién incorporado. "
+        "Las aristas verdes ya forman parte del MST definitivo."
+    )
+    prim_tl_steps = prim_with_steps(graph, first_server)
+    fig_prim_tl = build_prim_map_timelapse(prim_tl_steps, graph, speed_ms=speed_ms)
+    st.plotly_chart(fig_prim_tl, use_container_width=True)

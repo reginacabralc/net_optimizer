@@ -185,21 +185,30 @@ def shortest_path(
 def dijkstra_with_steps(graph: Graph, source_id: str) -> List[dict]:
     """
     Ejecuta Dijkstra capturando el estado de dist[] en cada iteración.
-    Usado para la animación paso a paso en el dashboard.
+    Usado para la animación paso a paso en el dashboard y el timelapse del mapa.
 
     Args:
         graph:     Grafo de la red ISP.
         source_id: ID del nodo origen.
 
     Returns:
-        Lista de dicts con estado en cada paso.
+        Lista de dicts con estado en cada paso. Cada dict contiene:
+          - current: nodo siendo procesado
+          - dist:    distancias mínimas hasta ese paso
+          - source:  nodo origen
+          - visited: lista ordenada de nodos ya asentados
+          - prev:    árbol de caminos mínimos (prev[v] = u)
     """
     dist: Dict[str, float] = {
         node_id: _INF for node_id in graph.get_all_node_ids()
     }
+    prev: Dict[str, Optional[str]] = {
+        node_id: None for node_id in graph.get_all_node_ids()
+    }
     dist[source_id] = 0.0
     heap: List[Tuple[float, str]] = [(0.0, source_id)]
     visited: set = set()
+    visited_order: List[str] = []
     steps: List[dict] = []
 
     while heap:
@@ -207,13 +216,23 @@ def dijkstra_with_steps(graph: Graph, source_id: str) -> List[dict]:
         if u in visited:
             continue
         visited.add(u)
-        steps.append({"current": u, "dist": dict(dist), "source": source_id})
+        visited_order.append(u)
+
         for (v, latency, _cost) in graph.get_neighbors(u):
             if v in visited:
                 continue
             new_dist = current_dist + latency
             if new_dist < dist[v]:
                 dist[v] = new_dist
+                prev[v] = u
                 heapq.heappush(heap, (new_dist, v))
+
+        steps.append({
+            "current": u,
+            "dist": dict(dist),
+            "source": source_id,
+            "visited": list(visited_order),
+            "prev": dict(prev),
+        })
 
     return steps

@@ -116,6 +116,75 @@ def prim_mst(
     return mst_edges, total_cost
 
 
+def prim_with_steps(
+    graph: Graph,
+    start_id: Optional[str] = None,
+) -> List[dict]:
+    """
+    Ejecuta Prim capturando el estado del MST después de cada arista agregada.
+    Usado para el timelapse del mapa en el dashboard.
+
+    Args:
+        graph:    Grafo de la red ISP.
+        start_id: ID del nodo inicial.
+
+    Returns:
+        Lista de dicts con estado en cada paso. Cada dict contiene:
+          - in_mst:       set de node_ids ya en el MST
+          - mst_edges:    lista de Edge ya añadidas al MST
+          - current_edge: Edge recién añadida (None en el paso inicial)
+          - total_cost:   costo acumulado del MST hasta ese paso
+    """
+    all_ids = graph.get_all_node_ids()
+    if not all_ids:
+        return []
+
+    if start_id is None:
+        start_id = all_ids[0]
+    elif not graph.node_exists(start_id):
+        raise KeyError(f"Nodo inicial '{start_id}' no existe.")
+
+    in_mst: Set[str] = {start_id}
+    mst_edges: List[Edge] = []
+    steps: List[dict] = []
+
+    # Paso 0: solo el nodo de inicio, sin aristas
+    steps.append({
+        "in_mst": set(in_mst),
+        "mst_edges": [],
+        "current_edge": None,
+        "total_cost": 0.0,
+    })
+
+    heap: List[Tuple[float, str, str, float]] = []
+    for (neighbor, latency, cost) in graph.get_neighbors(start_id):
+        heapq.heappush(heap, (cost, start_id, neighbor, latency))
+
+    while heap and len(mst_edges) < graph.num_nodes - 1:
+        cost, u, v, latency = heapq.heappop(heap)
+
+        if v in in_mst:
+            continue
+
+        in_mst.add(v)
+        new_edge = Edge(source=u, target=v, latency_ms=latency, cost_usd=cost)
+        mst_edges.append(new_edge)
+        total_cost = sum(e.cost_usd for e in mst_edges)
+
+        steps.append({
+            "in_mst": set(in_mst),
+            "mst_edges": list(mst_edges),
+            "current_edge": new_edge,
+            "total_cost": total_cost,
+        })
+
+        for (neighbor, neigh_latency, neigh_cost) in graph.get_neighbors(v):
+            if neighbor not in in_mst:
+                heapq.heappush(heap, (neigh_cost, v, neighbor, neigh_latency))
+
+    return steps
+
+
 def mst_summary(mst_edges: List[Edge], graph: Graph) -> str:
     """
     Genera un resumen legible del MST para la demo.

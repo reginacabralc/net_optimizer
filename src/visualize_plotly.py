@@ -331,6 +331,366 @@ def build_complexity_chart() -> go.Figure:
     return fig
 
 
+def _base_edges_xy(graph: Graph):
+    """Returns (x_list, y_list) for all edges as a single Scatter-compatible sequence."""
+    xs, ys = [], []
+    for (src_id, tgt_id, _, _) in graph.get_all_edges():
+        try:
+            src = graph.get_node(src_id)
+            tgt = graph.get_node(tgt_id)
+            xs += [src.lon, tgt.lon, None]
+            ys += [src.lat, tgt.lat, None]
+        except KeyError:
+            pass
+    return xs, ys
+
+
+def _animation_layout(title: str, n_frames: int, speed_ms: int) -> go.Layout:
+    """Shared Plotly layout for timelapse figures."""
+    return go.Layout(
+        title=title,
+        paper_bgcolor="#faf8f4",
+        plot_bgcolor="#f5f0e8",
+        font=dict(color="#2c2416", family="monospace"),
+        height=540,
+        margin=dict(l=40, r=20, t=90, b=40),
+        xaxis=dict(title="Longitud", gridcolor="#e8e0d0", zerolinecolor="#ccc0a8"),
+        yaxis=dict(
+            title="Latitud", gridcolor="#e8e0d0", zerolinecolor="#ccc0a8",
+            scaleanchor="x", scaleratio=1,
+        ),
+        updatemenus=[dict(
+            type="buttons",
+            direction="left",
+            buttons=[
+                dict(
+                    label="▶ Play",
+                    method="animate",
+                    args=[None, {
+                        "frame": {"duration": speed_ms, "redraw": True},
+                        "fromcurrent": True,
+                        "transition": {"duration": 0},
+                    }],
+                ),
+                dict(
+                    label="⏸ Pausa",
+                    method="animate",
+                    args=[[None], {
+                        "frame": {"duration": 0},
+                        "mode": "immediate",
+                        "transition": {"duration": 0},
+                    }],
+                ),
+            ],
+            bgcolor="#ffffff",
+            font=dict(color="#2c2416"),
+            x=0.01, y=1.18,
+        )],
+        sliders=[dict(
+            steps=[
+                dict(
+                    method="animate",
+                    args=[[str(i)], {
+                        "mode": "immediate",
+                        "frame": {"duration": speed_ms, "redraw": True},
+                        "transition": {"duration": 0},
+                    }],
+                    label=str(i + 1),
+                )
+                for i in range(n_frames)
+            ],
+            currentvalue=dict(prefix="Paso: ", font=dict(size=12)),
+            bgcolor="#ffffff",
+            font=dict(color="#2c2416"),
+            pad=dict(t=60),
+        )],
+    )
+
+
+def build_dijkstra_map_timelapse(
+    steps: List[dict],
+    graph: Graph,
+    speed_ms: int = 600,
+) -> go.Figure:
+    """
+    Mapa animado que muestra cómo Dijkstra se expande como una colonia.
+
+    Cada frame muestra:
+      - Aristas base (gris tenue, estáticas)
+      - Árbol de caminos mínimos creciendo (cian)
+      - Nodos asentados (cian, crecen)
+      - Nodo actual siendo procesado (estrella dorada)
+      - Nodos no visitados (opacidad baja)
+    """
+    if not steps:
+        return go.Figure()
+
+    all_nodes = list(graph.get_all_nodes())
+    base_x, base_y = _base_edges_xy(graph)
+
+    def _traces(step: dict) -> list:
+        visited_set = set(step["visited"])
+        current = step["current"]
+        prev = step["prev"]
+
+        # Shortest-path tree edges (settled prev pointers)
+        tree_x, tree_y = [], []
+        for nid in step["visited"]:
+            parent = prev.get(nid)
+            if parent is not None:
+                try:
+                    n = graph.get_node(nid)
+                    p = graph.get_node(parent)
+                    tree_x += [p.lon, n.lon, None]
+                    tree_y += [p.lat, n.lat, None]
+                except KeyError:
+                    pass
+
+        unvisited = [n for n in all_nodes if n.node_id not in visited_set]
+        settled = [n for n in all_nodes if n.node_id in visited_set and n.node_id != current]
+        try:
+            curr_node = graph.get_node(current)
+            curr_nodes = [curr_node]
+        except KeyError:
+            curr_nodes = []
+
+        return [
+            # 0 — base edges
+            go.Scatter(
+                x=base_x, y=base_y, mode="lines",
+                line=dict(color="rgba(58,58,92,0.22)", width=0.9),
+                hoverinfo="skip", showlegend=False,
+            ),
+            # 1 — shortest-path tree (cian)
+            go.Scatter(
+                x=tree_x, y=tree_y, mode="lines",
+                line=dict(color="#00bcd4", width=2.8),
+                showlegend=False, hoverinfo="skip",
+            ),
+            # 2 — unvisited nodes (dimmed)
+            go.Scatter(
+                x=[n.lon for n in unvisited],
+                y=[n.lat for n in unvisited],
+                mode="markers",
+                marker=dict(size=9, color="rgba(58,58,92,0.28)"),
+                hoverinfo="skip", showlegend=False,
+            ),
+            # 3 — settled nodes (cian)
+            go.Scatter(
+                x=[n.lon for n in settled],
+                y=[n.lat for n in settled],
+                mode="markers+text",
+                marker=dict(
+                    size=[_SIZES[n.node_type] for n in settled] if settled else 9,
+                    color="#00bcd4",
+                    symbol=[_SYMBOLS[n.node_type] for n in settled] if settled else "circle",
+                    line=dict(color="#ffffff", width=1.5),
+                ),
+                text=[n.name.split("-", 1)[-1] for n in settled],
+                textposition="top center",
+                textfont=dict(size=8, color="#00bcd4"),
+                showlegend=False,
+            ),
+            # 4 — current node (gold star)
+            go.Scatter(
+                x=[n.lon for n in curr_nodes],
+                y=[n.lat for n in curr_nodes],
+                mode="markers+text",
+                marker=dict(
+                    size=24,
+                    color="#ffd700",
+                    symbol=[_SYMBOLS[n.node_type] for n in curr_nodes] if curr_nodes else "star",
+                    line=dict(color="#ffffff", width=2),
+                ),
+                text=[n.name.split("-", 1)[-1] for n in curr_nodes],
+                textposition="top center",
+                textfont=dict(size=10, color="#ffd700", family="Arial Black"),
+                showlegend=False,
+            ),
+        ]
+
+    frames = []
+    for i, step in enumerate(steps):
+        try:
+            node_name = graph.get_node(step["current"]).name.split("-", 1)[-1]
+        except KeyError:
+            node_name = step["current"]
+        frames.append(go.Frame(
+            data=_traces(step),
+            name=str(i),
+            layout=go.Layout(
+                title_text=(
+                    f"Dijkstra — Paso {i + 1}/{len(steps)}: "
+                    f"asentando '{node_name}'"
+                )
+            ),
+        ))
+
+    layout = _animation_layout(
+        "Dijkstra — Expansión de la colonia sobre la red",
+        len(frames),
+        speed_ms,
+    )
+    return go.Figure(data=_traces(steps[0]), frames=frames, layout=layout)
+
+
+def build_prim_map_timelapse(
+    steps: List[dict],
+    graph: Graph,
+    speed_ms: int = 600,
+) -> go.Figure:
+    """
+    Mapa animado que muestra cómo Prim construye el MST como una colonia.
+
+    Cada frame muestra:
+      - Aristas base (gris tenue, estáticas)
+      - MST acumulado (verde)
+      - Arista recién añadida (dorada)
+      - Nodo recién añadido (estrella dorada)
+      - Nodos ya en MST (verde, crecen)
+      - Nodos fuera del MST (opacidad baja)
+    """
+    if not steps:
+        return go.Figure()
+
+    all_nodes = list(graph.get_all_nodes())
+    base_x, base_y = _base_edges_xy(graph)
+
+    def _traces(step: dict) -> list:
+        in_mst = step["in_mst"]
+        mst_edges_so_far = step["mst_edges"]
+        current_edge = step.get("current_edge")
+        new_node_id = current_edge.target if current_edge else None
+
+        # MST edges already settled (green), excluding the current one
+        mst_x, mst_y = [], []
+        for e in mst_edges_so_far:
+            if current_edge and e.source == current_edge.source and e.target == current_edge.target:
+                continue
+            try:
+                src = graph.get_node(e.source)
+                tgt = graph.get_node(e.target)
+                mst_x += [src.lon, tgt.lon, None]
+                mst_y += [src.lat, tgt.lat, None]
+            except KeyError:
+                pass
+
+        # Current edge being added (gold)
+        cur_ex, cur_ey = [], []
+        if current_edge:
+            try:
+                src = graph.get_node(current_edge.source)
+                tgt = graph.get_node(current_edge.target)
+                cur_ex = [src.lon, tgt.lon]
+                cur_ey = [src.lat, tgt.lat]
+            except KeyError:
+                pass
+
+        not_in_mst = [n for n in all_nodes if n.node_id not in in_mst]
+        settled_mst = [n for n in all_nodes if n.node_id in in_mst and n.node_id != new_node_id]
+        new_nodes = []
+        if new_node_id:
+            try:
+                new_nodes = [graph.get_node(new_node_id)]
+            except KeyError:
+                pass
+
+        return [
+            # 0 — base edges
+            go.Scatter(
+                x=base_x, y=base_y, mode="lines",
+                line=dict(color="rgba(58,58,92,0.22)", width=0.9),
+                hoverinfo="skip", showlegend=False,
+            ),
+            # 1 — settled MST edges (green)
+            go.Scatter(
+                x=mst_x, y=mst_y, mode="lines",
+                line=dict(color="#2ecc71", width=3),
+                showlegend=False, hoverinfo="skip",
+            ),
+            # 2 — current edge being added (gold)
+            go.Scatter(
+                x=cur_ex, y=cur_ey, mode="lines",
+                line=dict(color="#ffd700", width=5),
+                showlegend=False, hoverinfo="skip",
+            ),
+            # 3 — nodes outside MST (dimmed)
+            go.Scatter(
+                x=[n.lon for n in not_in_mst],
+                y=[n.lat for n in not_in_mst],
+                mode="markers",
+                marker=dict(size=9, color="rgba(58,58,92,0.28)"),
+                hoverinfo="skip", showlegend=False,
+            ),
+            # 4 — nodes already in MST (green)
+            go.Scatter(
+                x=[n.lon for n in settled_mst],
+                y=[n.lat for n in settled_mst],
+                mode="markers+text",
+                marker=dict(
+                    size=[_SIZES[n.node_type] for n in settled_mst] if settled_mst else 9,
+                    color="#2ecc71",
+                    symbol=[_SYMBOLS[n.node_type] for n in settled_mst] if settled_mst else "circle",
+                    line=dict(color="#ffffff", width=1.5),
+                ),
+                text=[n.name.split("-", 1)[-1] for n in settled_mst],
+                textposition="top center",
+                textfont=dict(size=8, color="#2ecc71"),
+                showlegend=False,
+            ),
+            # 5 — newly added node (gold burst)
+            go.Scatter(
+                x=[n.lon for n in new_nodes],
+                y=[n.lat for n in new_nodes],
+                mode="markers+text",
+                marker=dict(
+                    size=24,
+                    color="#ffd700",
+                    symbol=[_SYMBOLS[n.node_type] for n in new_nodes] if new_nodes else "star",
+                    line=dict(color="#ffffff", width=2),
+                ),
+                text=[n.name.split("-", 1)[-1] for n in new_nodes],
+                textposition="top center",
+                textfont=dict(size=10, color="#ffd700", family="Arial Black"),
+                showlegend=False,
+            ),
+        ]
+
+    frames = []
+    for i, step in enumerate(steps):
+        ce = step.get("current_edge")
+        if ce:
+            try:
+                src_n = graph.get_node(ce.source).name.split("-", 1)[-1]
+                tgt_n = graph.get_node(ce.target).name.split("-", 1)[-1]
+                title = (
+                    f"Prim — Paso {i + 1}/{len(steps)}: "
+                    f"conectando '{src_n}' → '{tgt_n}'  "
+                    f"(${ce.cost_usd:,.0f} USD · {ce.latency_ms} ms)"
+                )
+            except KeyError:
+                title = f"Prim — Paso {i + 1}/{len(steps)}"
+        else:
+            try:
+                start_name = graph.get_node(next(iter(step["in_mst"]))).name.split("-", 1)[-1]
+                title = f"Prim — Inicio desde '{start_name}'"
+            except (StopIteration, KeyError):
+                title = "Prim — Inicio"
+
+        frames.append(go.Frame(
+            data=_traces(step),
+            name=str(i),
+            layout=go.Layout(title_text=title),
+        ))
+
+    layout = _animation_layout(
+        "Prim MST — Crecimiento del árbol de fibra",
+        len(frames),
+        speed_ms,
+    )
+    return go.Figure(data=_traces(steps[0]), frames=frames, layout=layout)
+
+
 def build_dijkstra_steps_chart(
     steps: List[dict],
     graph: Graph,
