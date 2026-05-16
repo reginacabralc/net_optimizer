@@ -1,5 +1,5 @@
 # NetOptimizer — Internet / Telecom Network
-## Regia Cabral and Luciano Ramírez
+## Regina Cabral and Luciano Ramírez
 NetOptimizer is a data structures project for **Variant 4: Internet / Telecom Network**. It models a small fiber-optic ISP network in Mexico City and demonstrates how classic structures and algorithms solve practical telecom optimization questions:
 
 - What is the **minimum-latency route** from a user area to a datacenter?
